@@ -2,10 +2,11 @@
 ## Enterprise AI Infrastructure — High-Level Architecture
 **Document ID:** ARC-HLA-001  
 **Proposed Version:** 0.1  
+**Review Package Revision:** 0.2 — GAP-001 refinement  
 **Status:** Draft for Architecture Review  
 **Review baseline date:** 2026-11-10  
 **Repository baseline:** `main` — read-only inspection only  
-**Change control:** No repository files, branches, commits, or pull requests were modified or created.
+**Change control:** This revision updates the review package on `docs/architecture-baseline-v0.1` only; it does not modify `main`, merge branches, or approve the HLA baseline.
 
 ---
 
@@ -346,11 +347,13 @@ The HLA identifies logical interactions but does not select an unapproved messag
 
 The initial production deployment is on-premises, air-gapped, single-node, and CPU-only, using Docker Compose as the accepted deployment baseline. Persistent data services and model artifacts are hosted locally. The deployment view is conceptual; exact server sizing, storage capacity, network segmentation, ports, operating-system baseline, and backup target remain to be determined.
 
+Capacity and performance planning must be workload-based rather than inferred from the single-node topology. Before production acceptance, a representative workload profile must cover expected document volume and growth, document size and format mix (including OCR share where applicable), ingestion and processing rates, indexing workload, concurrent users and queries, retrieval latency objectives, and local CPU-only inference demand. The benchmark must evaluate the combined resource impact of MinIO, PostgreSQL, Qdrant, OpenSearch, application workloads, and local inference on the same host. Numerical latency, throughput, concurrency, and hardware-capacity targets remain TBD until the workload profile is agreed and benchmark evidence is available; this HLA makes no numerical SLO or capacity commitment.
+
 Kubernetes, multi-node clustering, and GPU acceleration are not part of the initial production architecture.
 
 ### 8.15 Operational Architecture & Observability
 
-The platform requires operational visibility across ingestion, processing, retrieval, authorization, generation, index activation, model lifecycle, and storage. Metrics, logs, traces, audit events, health/readiness information, and backup/restore status should be correlated sufficiently to support troubleshooting and incident response.
+The platform requires operational visibility across ingestion, processing, retrieval, authorization, generation, index activation, model lifecycle, and storage. Metrics, logs, traces, audit events, health/readiness information, and backup/restore status should be correlated sufficiently to support troubleshooting and incident response. For performance and capacity evaluation, workload-level measures (ingestion, processing and indexing throughput; retrieval latency; concurrency; and inference throughput) should be correlated with host and component resource measures (CPU, memory, storage capacity and I/O) across MinIO, PostgreSQL, Qdrant, OpenSearch, application workloads, and local inference.
 
 Existing SINA operational documents provide historical design inputs, but their thresholds, retention periods, and service targets must not be treated as approved project-level commitments without reconciliation.
 
@@ -472,11 +475,13 @@ HLA تعاملات منطقی را مشخص می‌کند اما Message Broker 
 
 استقرار اولیه Production به‌صورت On-Premises، Air-Gapped، Single-Node و CPU-only و بر پایه Docker Compose است. سرویس‌های داده پایدار و مصنوعات مدل به‌صورت محلی میزبانی می‌شوند. نمای استقرار مفهومی است؛ ظرفیت دقیق سرور، فضای ذخیره‌سازی، تفکیک شبکه، Portها، Baseline سخت‌سازی سیستم‌عامل و مقصد Backup هنوز تعیین نشده‌اند.
 
+ظرفیت‌سنجی و ارزیابی عملکرد باید بر مبنای الگوی بار واقعی انجام شود، نه بر اساس فرض‌های ناشی از تک‌گره‌ای بودن استقرار. پیش از پذیرش Production، پروفایل بار نماینده باید حجم و رشد اسناد، ترکیب اندازه و قالب اسناد (از جمله سهم OCR در صورت کاربرد)، نرخ دریافت و پردازش، بار Indexing، تعداد کاربران و درخواست‌های هم‌زمان، اهداف تأخیر Retrieval و تقاضای Inference محلی مبتنی بر CPU را پوشش دهد. Benchmark باید اثر ترکیبی مصرف منابع MinIO، PostgreSQL، Qdrant، OpenSearch، بار Application و Inference محلی را روی همان Host ارزیابی کند. مقادیر عددی Latency، Throughput، Concurrency و ظرفیت سخت‌افزار تا زمان توافق بر پروفایل بار و دستیابی به شواهد Benchmark باز می‌مانند؛ این HLA هیچ SLO یا ظرفیت عددی را تصویب نمی‌کند.
+
 Kubernetes، کلاستر چندگره‌ای و شتاب‌دهی GPU بخشی از معماری اولیه Production نیستند.
 
 ## 23. معماری عملیات و Observability
 
-سامانه باید در حوزه‌های دریافت، پردازش، بازیابی، مجوزدهی، تولید پاسخ، فعال‌سازی Index، چرخه عمر مدل و ذخیره‌سازی دید عملیاتی فراهم کند. Metrics، Logs، Traces، رویدادهای Audit، وضعیت Health/Readiness و وضعیت Backup/Restore باید به‌اندازه کافی قابل هم‌بستگی باشند تا عیب‌یابی و پاسخ به رخداد پشتیبانی شود.
+سامانه باید در حوزه‌های دریافت، پردازش، بازیابی، مجوزدهی، تولید پاسخ، فعال‌سازی Index، چرخه عمر مدل و ذخیره‌سازی دید عملیاتی فراهم کند. Metrics، Logs، Traces، رویدادهای Audit، وضعیت Health/Readiness و وضعیت Backup/Restore باید به‌اندازه کافی قابل هم‌بستگی باشند تا عیب‌یابی و پاسخ به رخداد پشتیبانی شود. برای ارزیابی عملکرد و ظرفیت، شاخص‌های سطح بار (نرخ دریافت، پردازش و ایندکس‌سازی؛ تأخیر Retrieval؛ هم‌زمانی؛ و Throughput استنتاج) باید با شاخص‌های مصرف منابع Host و Componentها (CPU، حافظه، ظرفیت و I/O ذخیره‌سازی) در MinIO، PostgreSQL، Qdrant، OpenSearch، اجزای Application و Runtime استنتاج محلی قابل هم‌بستگی باشند.
 
 اسناد عملیاتی SINA ورودی تاریخی طراحی هستند؛ آستانه‌ها، دوره‌های نگهداری و اهداف خدماتی آن‌ها بدون تطبیق و تصویب نباید تعهد قطعی پروژه تلقی شوند.
 
