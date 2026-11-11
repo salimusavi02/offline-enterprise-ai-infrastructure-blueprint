@@ -101,3 +101,15 @@ These are not automatically replaced or deleted by this work. In line with the c
 - Two new Markdown work products (RTM and Gap Register) are staged on the working branch.
 - The working branch remains separate from main; no merge to main is included in this authorization.
 - RTM v0.1 is the practical baseline for the next Architecture Gap Analysis/HLA revision cycle and is expected to be refined later.
+
+## 8. Architecture Gap Analysis & HLA Refinement — 2026-11-11
+
+### 8.1 GAP-001 — Performance and capacity targets
+
+- HLA review package refined in English and Persian to require workload-based capacity planning and a representative benchmark before production acceptance.
+- The benchmark scope now explicitly includes document volume/growth and format mix, ingestion/processing/indexing rates, concurrency, retrieval latency objectives, CPU-only local inference, and combined same-host resource impact across MinIO, PostgreSQL, Qdrant, OpenSearch, application workloads, and local inference.
+- No numerical latency, throughput, concurrency, or hardware-capacity target was invented or approved.
+- RTM v0.2 changes NFR-001 from TBD to Partial; NFR-002 and NFR-003 remain TBD; NFR-004 and NFR-005 remain Partial with refined evidence notes. NFR-006 remains Covered.
+- GAP Register v0.2 introduces explicit per-gap status tracking: GAP-001 is Partially Resolved; GAP-002…GAP-012 remain Open at this point.
+- OPEN-010 (hardware sizing) and OPEN-005 (embedding/LLM selection) remain open. Detailed workload values, benchmark execution, capacity sizing, and acceptance thresholds are deferred to Detailed Architecture / Benchmark and production acceptance.
+- Changes are limited to the working branch `docs/architecture-baseline-v0.1`; no merge to `main` is performed.
