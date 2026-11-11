@@ -1,375 +1,456 @@
-Version: 1.3
-Updated: ۱۴۰۴/۰۸/۱۹ (2026-11-10)
-
 # Enterprise AI Infrastructure: Document Intelligence & RAG Ecosystem
 
-**Status:** Draft | **Version:** 1.1 | **Environment:** Air-Gapped / CPU-Only
-
-## Executive Summary
-
-This architecture outlines a resilient, backend-agnostic system for managing a large-scale multilingual (primarily Persian/English) document corpus in a fully air-gapped environment. It emphasizes deterministic retrieval via hybrid search (BM25 + Vector), with strong provisions for Persian NLP challenges such as RTL text handling and character normalization. Offline constraints are prioritized through local model registries, manual update pipelines, and rebuild-from-source strategies to ensure long-term maintainability without internet dependency. The design supports auditability, governance, and scalability while optimizing for CPU-only inference to minimize hardware costs in secure, isolated deployments.
-
----
-
-## A. Layered System Architecture
-
-The system adopts a **Hexagonal Architecture (Ports & Adapters)** to maintain backend agnosticism, allowing seamless integration with frameworks like Django while isolating core logic. This enables extensibility through defined interfaces (ports) for swapping components, such as replacing a vector DB without refactoring.
-
-[ Layer 7: Observability ]
-[ Layer 6: API Gateway ]
-[ Layer 5: RAG Orchestration ]
-[ Layer 4: Hybrid Index ]
-[ Layer 3: Embedding ]
-[ Layer 2: Processing ]
-[ Layer 1: Ingestion ]
-────────────────────────────────
-[ Foundational Layer: Data Lake ]
-   ├── Raw Zone
-   ├── Processed Zone
-   └── Curated / Entity Zone
-
-The **Foundational Data Lake Layer** is an independent foundation that sits below all seven application layers. It persists raw files, normalized text, Parquet tables, and Entity-Centric documents across three zones, with versioning, partitioning, IAM policies, and ACID metadata via Catalog. It is the **Source of Truth** — all indexes (Vector, BM25) are rebuildable from Data Lake (rebuild-from-source). The **Storage Layer is built on top of the Data Lake**; Data Lake is not a sub-component of Storage.
-
-Zone details, partitioning convention, Catalog design, and Persian-first considerations are defined in `Data-Lake-Discussion-Summary.md` (SSOT).
-
-1. **Ingestion Layer (The "Senses")**
-
-   - **Responsibilities:** Monitor file directories for changes, compute hashes, perform offline virus scanning (using pre-loaded definitions), and trigger idempotent ingestion. Handles initial format detection for PDFs/DOCX.
-   - **Components:** Directory Watcher (e.g., Watchdog), Hashing Module, Ingress Gateway.
-   - **Extensibility:** Ports for custom scanners or additional file formats (e.g., future support for scanned images with Persian OCR).
-2. **Processing Layer (The "Brain" - CPU Optimized)**
-
-   - **Responsibilities:** Extract text/layouts, normalize multilingual content (with Persian-specific rules), and chunk documents semantically. All operations are batched for CPU efficiency.
-   - **Components:** ETL Pipelines, Normalization Engine (Persian-focused).
-   - **Extensibility:** Adapters for new NLP models, ensuring offline loading from local repositories.
-3. **Embedding Layer (The "Encoder")**
-
-   - **Responsibilities:** Generate embeddings for normalized chunks using quantized models, batching for CPU efficiency. Produces vectors consumed by the Hybrid Index Layer.
-   - **Components:** Embedding Service (ONNX Runtime), Local Model Registry.
-   - **Extensibility:** Adapters for new embedding models; offline loading from local repositories.
-4. **Hybrid Index Layer (The "Catalog")**
-
-   - **Responsibilities:** Maintain versioned vector and keyword (BM25) indexes, handle deduplication, and support hybrid fusion. Offline index rebuilds are triggered manually or scheduled. All indexes are rebuildable from the Foundational Data Lake Layer.
-   - **Components:** Index Builder, Version Registry, Deduplication Clusterer.
-   - **Extensibility:** Hooks for custom index types or fusion algorithms.
-5. **RAG Orchestration Layer (The "Control")**
-
-   - **Responsibilities:** Schedule background jobs, enforce policies (e.g., retention, ACLs), manage index migrations, execute retrieval and re-ranking, and log audits. In offline mode, all orchestration is local with no external dependencies.
-   - **Components:** Workflow Orchestrator, Policy Engine, Audit Logger, Retriever Service, Re-ranker (Cross-Encoder).
-   - **Extensibility:** Integration ports for enterprise identity providers (e.g., local LDAP); pluggable query expanders for additional languages.
-6. **API Gateway Layer (The "Interface")**
-
-   - **Responsibilities:** Expose REST/gRPC endpoints for ingestion/query, validate requests, and stream responses. Supports offline authentication via local tokens.
-   - **Components:** API Gateway, Authentication Module.
-   - **Extensibility:** Adapters for UI frameworks or additional protocols.
-7. **Observability Layer (The "Eyes")**
-
-   - **Responsibilities:** Collect metrics/logs offline, detect anomalies (e.g., embedding drift), and provide dashboards. All data stays local.
-   - **Components:** Metrics Collector, Log Aggregator, Dashboard Server.
-   - **Extensibility:** Exports to file-based reports for air-gapped analysis.
-
-**Separation of Concerns:** Layers communicate via defined interfaces to prevent tight coupling, ensuring that changes in one layer (e.g., new Persian tokenizer) don't propagate. The Foundational Data Lake Layer is the single Source of Truth; upper layers consume it and never mutate the source contract. **Extensibility Strategy:** Use dependency injection for components; maintain a local model registry for offline updates, with versioning to avoid disruptions.
+**Version:** 2.0 (Proposed)  
+**Status:** Proposed Architecture — Pending Document Approval  
+**Deployment Model:** Single-Node  
+**Environment:** Air-Gapped / Offline-First  
+**Primary Languages:** Persian / English
 
 ---
 
-## B. Text-Based Component Diagram
+## 1. Executive Summary
 
-```mermaid
-graph TD
-    User[User/Client App] --> API[API Gateway (REST/gRPC)]
-    API --> Orch[Orchestrator Service (Workflow Engine)]
-   
-   subgraph "Ingestion & Processing Pipeline (Async, Offline)"
-       Orch --> Q[Task Queue (Redis/RabbitMQ)]
-       Q --> W1[Ingest Worker (Hashing, Scanning)]
-       Q --> W2[Normalize Worker (Persian NLP)]
-       Q --> W3[Embed Worker (ONNX, Quantized)]
-       Q --> W4[Entity Worker]
-       W2 -- Process --> NLP[Multilingual NLP Module (Hazm/DadmaTools)]
-       W3 -- Inference --> Models[Local Model Registry (HuggingFace/ONNX Files)]
-   end
-   
-   subgraph "Foundational Layer: Data Lake (Source of Truth)"
-       Raw[MinIO Raw Zone]
-       Processed[MinIO Processed Zone]
-       Curated[MinIO Curated Zone / Entity Documents]
-   end
-   
-   W1 -- Read/Write --> Raw
-   W2 -- Write --> Processed
-   W4 -- Write --> Curated
+This document defines the target architecture for an offline enterprise Document Intelligence and Retrieval-Augmented Generation (RAG) platform.
 
-   subgraph "Storage Plane (Built on Foundational Data Lake Layer)"
-       W1 -- Metadata --> DB[(PostgreSQL - Metadata, Schemas, Catalog)]
-       W3 -- Vectors/Keywords --> VDB[(Hybrid Vector DB - Qdrant/OpenSearch)]
-       DB -- CDC/Sync --> VDB[Index Version Registry]
-   end
-  
-   subgraph "Retrieval & Query Plane"
-       API --> Search[Search Service (Query Planner)]
-       Search --> VDB
-       Search --> DB[ACL Filters]
-       Search --> Models[Re-ranker]
-   end
-  
-   subgraph "Governance & Observability"
-       Orch --> Gov[Governance Engine (ACL, Audit)]
-       All[All Components] --> Obs[Observability Stack (Prometheus/Loki)]
-   end
-  
-   Obs --> Dash[Local Dashboard (Grafana)]
-```
+The platform ingests enterprise documents, extracts and processes their content, generates canonical chunks and embeddings, maintains independent lexical and vector indexes, and provides permission-aware retrieval for local LLM inference.
 
-**Key Connections:**
+The initial deployment is intentionally Single-Node to reduce operational complexity. The architecture nevertheless establishes clear logical boundaries and technology-independent interfaces to support future evolution.
 
-- **Data Flow:** Unidirectional from Ingestion → Processing → Embedding → Foundational Data Lake Layer (Raw/Processed/Curated) → Hybrid Index/Retrieval; normalized text and Parquet stored in Data Lake for offline re-embedding without re-parsing. **Data Lake is Source of Truth** — all indexes (Vector, BM25) are rebuildable from it (rebuild-from-source).
-- **Storage Relationship:** The Storage Plane (PostgreSQL Catalog + Hybrid Vector DB) is built **on top of** the Foundational Data Lake Layer; Data Lake is not part of Storage.
-- **Control Flow:** Orchestrator triggers jobs via queues; governance intercepts all flows for compliance.
-- **Background Pipelines:** Dedicated queues for re-indexing/migration, running in low-priority mode to avoid CPU contention.
-- **Index Routing:** Queries route to the "active" index version via PostgreSQL registry; during migrations, a router proxies to both old/new indexes for zero-downtime.
+The architecture is based on the following approved decisions:
+
+| Area | Approved Decision |
+|---|---|
+| Deployment | Single-Node |
+| Object Storage / Data Lake foundation | MinIO |
+| Operational Metadata | PostgreSQL |
+| Vector Search | Qdrant |
+| Lexical Search (BM25) | OpenSearch |
+| Canonical Chunk Storage | MinIO — Processed Zone |
+| Hybrid Fusion | Reciprocal Rank Fusion (RRF) |
+| LLM and Embedding | Local runtimes |
+| Deployment Orchestration | Docker Engine / Docker Compose |
+
+MinIO, PostgreSQL, Qdrant, and OpenSearch have distinct responsibilities. Search indexes are derived artifacts and must be reproducible from canonical data and versioned processing artifacts.
+
+## 2. Architecture Principles
+
+1. **Offline-first:** Runtime operation must not depend on public internet connectivity.
+2. **Single source of truth:** Canonical source files and processed artifacts are maintained in MinIO.
+3. **Separation of responsibilities:** Object storage, operational metadata, and search indexes are separate architectural concerns.
+4. **Rebuildability:** Vector and lexical indexes must be rebuildable from canonical processed artifacts.
+5. **Versioned processing:** Document, processing, chunking, embedding, and index versions must be traceable.
+6. **Permission-aware retrieval:** No document content may enter an LLM context without authorization validation.
+7. **Idempotent workflows:** Retried jobs must not create inconsistent duplicate artifacts or records.
+8. **Controlled activation:** An incomplete document or index version must never become active.
+9. **Observable operations:** Processing, retrieval, failures, and administrative actions must be auditable.
+10. **Incremental evolution:** The initial deployment must avoid unnecessary distributed-system complexity.
+
+## 3. Logical Architecture
+
+The platform is divided into the following logical layers.
+
+### 3.1 Client and Access Layer
+
+Responsibilities:
+- User-facing application and API clients
+- Authentication
+- Request validation
+- Session and identity context propagation
+
+### 3.2 API and Application Layer
+
+Responsibilities:
+- Document upload and management APIs
+- Query and response APIs
+- Administrative endpoints
+- API-level authorization and rate control
+
+### 3.3 Domain and Orchestration Layer
+
+Responsibilities:
+- Document lifecycle management
+- Pipeline orchestration
+- Workflow state transitions
+- Retry and recovery coordination
+- Version activation and deactivation
+
+### 3.4 Processing and Retrieval Layer
+
+Logical service boundaries:
+
+- Ingestion Service
+- Document Processing Service
+- Normalization and Chunking Service
+- Embedding Service
+- Indexing Service
+- Query Planning Service
+- Hybrid Retrieval Service
+- Reranking Service
+- Context Assembly Service
+- Local LLM Service
+
+These are logical responsibilities, not a requirement to deploy every component as a separate microservice or container.
+
+### 3.5 Data and Persistence Layer
+
+This layer contains three distinct persistence responsibilities:
+
+**A. Data Lake / Object Storage — MinIO**
+
+Stores:
+- Original source documents
+- Extracted content
+- Normalized documents
+- Canonical chunks
+- Processing manifests
+- Curated business artifacts
+
+**B. Operational Storage — PostgreSQL**
+
+Stores:
+- Document and version metadata
+- Processing workflow state
+- ACL and authorization metadata
+- Data lineage
+- Index registry
+- Pipeline execution records
+- Outbox events
+- Audit metadata
+
+PostgreSQL does not own the canonical chunk text.
+
+**C. Search Index Storage**
+
+- Qdrant: vector representations and retrieval metadata
+- OpenSearch: lexical searchable content and BM25 indexes
+
+Both search systems are derived stores. They are not authoritative repositories for document lifecycle or canonical content.
+
+### 3.6 Cross-Cutting Capabilities
+
+- Identity and access management
+- Audit logging
+- Monitoring and alerting
+- Configuration and secrets management
+- Backup and recovery
+- Model and artifact version management
+
+## 4. Data Lake and Operational Storage Architecture
+
+### 4.1 MinIO — Data Lake Foundation
+
+MinIO provides S3-compatible object storage and is the persistence foundation for the Data Lake.
+
+The Data Lake is organized into three logical zones:
+
+**Raw Zone**
+- Original uploaded documents
+- Immutable source artifacts
+- Original binary content
+- Source and ingestion metadata references
+
+**Processed Zone**
+- Extracted text
+- Normalized text
+- Canonical chunks
+- Chunk manifests
+- Processing outputs
+- Versioned intermediate artifacts
+
+**Curated Zone**
+- Business-ready entity documents
+- Curated datasets
+- Structured artifacts prepared for downstream consumption
+
+The zones are logical data-governance boundaries. Their physical implementation may use separate buckets or prefixes according to operational and security requirements.
+
+### 4.2 PostgreSQL — Operational Storage
+
+PostgreSQL is responsible for operational consistency and lifecycle coordination.
+
+Core logical entities include:
+
+- `sources`
+- `documents`
+- `document_versions`
+- `artifacts`
+- `pipeline_runs`
+- `pipeline_steps`
+- `chunk_manifests`
+- `access_policies`
+- `groups`
+- `document_acl`
+- `index_registry`
+- `outbox_events`
+- `audit_events`
+
+PostgreSQL stores references to MinIO objects, not the authoritative document or canonical chunk payloads.
+
+### 4.3 Canonical Data Ownership
+
+| Data | Authoritative Location |
+|---|---|
+| Original document | MinIO Raw Zone |
+| Extracted document | MinIO Processed Zone |
+| Normalized document | MinIO Processed Zone |
+| Canonical chunks | MinIO Processed Zone |
+| Document metadata | PostgreSQL |
+| Workflow state | PostgreSQL |
+| ACL and policy metadata | PostgreSQL |
+| Vector index | Qdrant |
+| BM25 index | OpenSearch |
+| Index lifecycle metadata | PostgreSQL |
+
+A search result must be traceable to a canonical `chunk_id` and its corresponding MinIO artifact.
+
+## 5. Hybrid Search Architecture
+
+The platform uses two independent search engines.
+
+### 5.1 Vector Search — Qdrant
+
+Responsibilities:
+- Store embeddings
+- Execute semantic similarity searches
+- Support metadata filtering
+- Associate vectors with canonical chunk identifiers
+- Support index versioning and rebuild operations
+
+Qdrant payload should contain only the metadata required for filtering, ranking, and traceability. Canonical chunk content remains in MinIO.
+
+### 5.2 Lexical Search — OpenSearch
+
+Responsibilities:
+- Maintain searchable text indexes
+- Execute BM25 queries
+- Support language-aware analysis
+- Support metadata and ACL filtering
+- Maintain independent index versions
+
+Persian analyzer design, including ZWNJ handling, stemming, and tokenization, requires a dedicated benchmark and validation phase.
+
+### 5.3 Hybrid Fusion
+
+The initial fusion strategy is Reciprocal Rank Fusion (RRF).
+
+The retrieval workflow:
+
+1. Execute vector search in Qdrant.
+2. Execute lexical search in OpenSearch.
+3. Normalize and combine ranked results through RRF.
+4. Validate document state and authorization.
+5. Apply reranking if enabled.
+6. Retrieve canonical chunks from MinIO.
+7. Assemble authorized context for LLM inference.
+
+The two indexes must refer to compatible document and processing versions.
+
+## 6. Document and Index Lifecycle
+
+Each document may have multiple versions.
+
+A document version moves through a controlled lifecycle:
+
+`RECEIVED → PROCESSING → PROCESSED → INDEXING → VALIDATING → ACTIVE`
+
+Additional terminal or exceptional states may include:
+
+- `FAILED`
+- `REJECTED`
+- `SUPERSEDED`
+- `DELETED`
+
+### 6.1 Activation Requirements
+
+A new document version must not become active until:
+
+- Original and processed artifacts are persisted.
+- Canonical chunk manifest is valid.
+- Metadata and lineage are committed.
+- Embeddings are generated successfully.
+- Qdrant indexing is validated.
+- OpenSearch indexing is validated.
+- ACL metadata is available and consistent.
+- Index and artifact version compatibility is confirmed.
+
+Activation must be a controlled state transition coordinated through PostgreSQL.
+
+### 6.2 Previous Version Preservation
+
+The currently active version remains available while a replacement is being processed and indexed.
+
+After successful validation:
+- The new version becomes active.
+- The previous version becomes superseded.
+- Retrieval is routed to the active version.
+
+If the new version fails validation, the previous active version remains available.
+
+## 7. ACL and Security Architecture
+
+Authorization is enforced at multiple points.
+
+### 7.1 Authorization Flow
+
+1. Authenticate the user.
+2. Resolve user identity and group memberships.
+3. Build the authorization context.
+4. Apply ACL constraints to Qdrant and OpenSearch queries where supported.
+5. Fuse candidate results.
+6. Revalidate authorization against authoritative PostgreSQL metadata.
+7. Verify document lifecycle state.
+8. Fetch canonical chunks from MinIO only after authorization succeeds.
+9. Include only authorized content in the LLM context.
+
+### 7.2 Fail-Closed Requirement
+
+If authorization metadata is missing, unavailable, inconsistent, or cannot be validated, access must be denied.
+
+Post-retrieval filtering alone is insufficient if unauthorized content can enter reranking, context assembly, logs, or LLM prompts.
+
+ACL changes must be traceable and propagated to both search indexes. Until synchronization is confirmed, authoritative authorization checks must prevent exposure.
+
+## 8. Logical Service Boundaries and Architecture Style
+
+The internal application architecture should follow Hexagonal Architecture (Ports and Adapters).
+
+Examples of ports:
+
+- `ObjectStoragePort`
+- `MetadataRepositoryPort`
+- `VectorSearchPort`
+- `LexicalSearchPort`
+- `EmbeddingPort`
+- `LLMInferencePort`
+- `AuthorizationPort`
+
+Adapters implement these interfaces for MinIO, PostgreSQL, Qdrant, OpenSearch, and local model runtimes.
+
+Hexagonal Architecture is an internal design pattern, not an additional deployment layer.
+
+## 9. Physical Deployment Architecture
+
+The first deployment consists of one Linux host running Docker Engine and Docker Compose.
+
+Expected logical workloads:
+
+- Reverse Proxy / API Entry
+- API Application
+- Ingestion Worker
+- Processing Worker
+- Embedding Runtime
+- Indexing Worker
+- Local LLM Runtime
+- PostgreSQL
+- MinIO
+- Qdrant
+- OpenSearch
+- Monitoring and Logging
+- Backup Jobs
+
+The logical services may be consolidated into fewer containers during the initial implementation.
+
+Redis, RabbitMQ, and a separate distributed workflow engine are not mandatory in the first deployment. Their introduction requires a demonstrated operational need.
+
+### 9.1 Network Segmentation
+
+Logical networks:
+
+- `frontend_net`: controlled client-facing access
+- `backend_net`: internal application and data services
+
+Database and search service ports must not be directly exposed to user networks.
+
+Administrative interfaces must be restricted to authorized management access.
+
+### 9.2 Persistent Volumes
+
+Expected persistent data areas:
+
+- MinIO data
+- PostgreSQL data
+- Qdrant data
+- OpenSearch data
+- Model Vault
+- Application configuration
+- Application logs
+
+Secrets must be managed separately from ordinary configuration and protected at rest.
+
+## 10. Backup and Recovery
+
+Backup responsibilities must cover:
+
+- MinIO source and processed artifacts
+- PostgreSQL metadata and operational state
+- Qdrant and OpenSearch snapshots or rebuild capability
+- Model artifacts and model manifests
+- Configuration and deployment definitions
+- Secrets, through an appropriately protected mechanism
+
+A backup stored only on the primary host is not sufficient.
+
+RPO, RTO, retention periods, and recovery procedures remain operational decisions requiring explicit approval.
+
+Restore tests are mandatory. A backup that has not been successfully restored is not considered validated.
+
+## 11. Observability and Auditability
+
+The platform should capture:
+
+- Document ingestion events
+- Processing execution and failures
+- State transitions
+- Index build and activation events
+- Retrieval traces
+- Authorization decisions
+- Model and embedding versions
+- Administrative actions
+- Backup and restore outcomes
+
+Logs must avoid unnecessary exposure of sensitive document contents and user queries.
+
+## 12. Single-Node Limitations
+
+The first deployment is a controlled initial architecture, not a highly available cluster.
+
+Known limitations:
+
+- Single point of failure
+- Shared CPU, RAM, and storage contention
+- Limited independent scaling
+- Maintenance may require service interruption
+- Host-level failure can affect all platform services
+
+Future evolution may introduce separate worker nodes, replicated storage, and clustered search services. These are outside the initial deployment scope.
+
+## 13. Open Architecture Decisions
+
+The following items require validation before implementation baselines are frozen:
+
+| ID | Topic | Required Outcome |
+|---|---|---|
+| OPEN-001 | Unicode normalization | Approve NFC/NFKC and explicit Persian mapping contract |
+| OPEN-002 | Chunking | Benchmark chunk size, overlap, and boundary strategy |
+| OPEN-003 | Tokenizer | Select and version Persian/multilingual tokenizer |
+| OPEN-004 | ACL model | Define users, groups, inheritance, and document-level policies |
+| OPEN-005 | PostgreSQL schema | Finalize constraints, indexes, and lifecycle model |
+| OPEN-006 | OpenSearch analysis | Validate Persian analyzer and BM25 behavior |
+| OPEN-007 | Resource sizing | Benchmark CPU, RAM, SSD, and concurrency |
+| OPEN-008 | Backup objectives | Approve RPO, RTO, retention, and recovery design |
+
+## 14. Architecture Decision Records
+
+The following decisions are approved for the initial phase:
+
+- ADR-001: Single-Node deployment
+- ADR-002: MinIO as Data Lake object storage foundation
+- ADR-003: Separate Qdrant and OpenSearch search engines
+- ADR-004: Canonical chunks stored in MinIO Processed Zone; PostgreSQL stores metadata and lineage
+
+Additional technology and implementation decisions must be recorded separately and must not be treated as approved merely because they appear as examples in this document.
 
 ---
 
-## C. End-to-End Data Flow
-
-1. **Document Ingestion:** Files dropped into watched directory. Worker computes SHA-256 hash and metadata (e.g., filename, size). Offline virus scan using pre-loaded ClamAV definitions. Edge case: Corrupted file → log error, quarantine to DLQ.
-2. **Change Detection:** Query PostgreSQL for existing hash. If match, skip (idempotency). For updates, compare content fingerprint (e.g., perceptual hash for PDFs). Edge case: Persian filename encoding mismatch → normalize UTF-8 before hashing.
-3. **Parsing & Normalization:** Use layout-aware parser to extract text/tables/images. For Persian, apply RTL detection and ZWNJ unification. Edge case: Mixed-script documents → segment by language before normalization.
-4. **Chunking:** Semantic chunking with overlap (e.g., 20% window). Persian heuristics: Split at sentence boundaries using morphology-aware tools to avoid mid-word breaks. Edge case: Long RTL paragraphs — text/chunk order reversal is **forbidden** per ADR-011 norm-v1.0 (embedding models operate on logical order, not visual order).
-5. **Embedding Generation:** Batch chunks, embed using quantized multilingual model. Offline mode: Models loaded from local dir; no dynamic downloads. Edge case: CPU overload → fallback to smaller batches or sequential processing.
-6. **Vector Indexing:** Store embeddings in HNSW index with payload (e.g., ACLs, lang). Edge case: High-dimensional drift in Persian embeddings → monitor and trigger alert.
-7. **Hybrid Indexing:** Parallel BM25 index build with Persian tokenizers (stemming, stopwords). Edge case: Multilingual queries → route to language-specific sub-indexes.
-8. **Query Flow:** User query normalized (e.g., Persian variants unified). Embed query, extract keywords. Edge case: Offline query expansion → use local synonym dictionary for Persian terms.
-9. **RAG Orchestration:** Retrieve top-K from hybrid, re-rank, assemble context. Apply governance filters. Edge case: No results → fallback to keyword-only for sparse Persian corpora.
-10. **Response Generation:** Feed context to local LLM for answer. Offline mode: All generation on-device; log full trace for audit. Edge case: Sensitive data in response → redact based on ACLs.
-
----
-
-## D. Ingestion & Document Update Detection
-
-- **File Hashing Strategy:** SHA-256 on raw bytes for initial dedup, combined with content-based fingerprint (e.g., ssdeep for fuzzy matching) to handle minor edits.
-- **Content-Based Fingerprinting:** For PDFs, extract text hash post-normalization; ignore metadata changes.
-- **Chunk-Level Diff Detection:** Use diff algorithms on normalized text chunks; only re-embed changed chunks. Trade-off: Compute-intensive but saves storage in large corpora.
-- **Partial Re-Indexing:** Triggered by diff; update vector DB incrementally via upsert. Offline: Batch diffs nightly to minimize daytime CPU use.
-- **Tombstone Strategy for Deletions:** Mark in PostgreSQL with `deleted_at`; propagate to vector DB via background job. Retain for audit (e.g., 90 days).
-- **Version History Tracking:** Each document has a version chain in SQL; queries can filter by version.
-- **Idempotent Ingestion Design:** Use unique `ingest_id` (hash + timestamp); duplicate jobs abort early.
-
----
-
-## E. Semantic Deduplication
-
-- **Exact Duplicate Detection:** SHA-256 on normalized text post-Persian unification.
-- **Near-Duplicate Detection via Embedding Similarity:** Cosine threshold (>0.95); cluster using MiniBatchKMeans for efficiency.
-- **LSH or Clustering Strategy:** Use Random Projection LSH for initial bucketing; refine with exact similarity. Offline: Pre-compute LSH indexes locally.
-- **Cross-Document Deduplication:** Scan across corpus; link duplicates via references in DB to avoid vector storage bloat.
-- **Multilingual Normalization Impact:** Persian variants (e.g., ي/ی) unified before embedding; this reduces false negatives in dedup but may merge semantically distinct terms—mitigate with language tagging.
-- **Storage Optimization Techniques:** Store deduped chunks as references; compress vectors with PQ. Trade-off: Slight recall loss vs. 50-70% storage savings in Persian-heavy corpora.
-
----
-
-## F. Hybrid Search Architecture (BM25 + Vector)
-
-- **Unified vs Separate Index Trade-Offs:** Unified (e.g., OpenSearch) simplifies management but increases RAM; separate (pgvector + FTS) allows independent scaling but requires custom fusion logic. Choose unified for offline simplicity.
-- **Score Fusion:** RRF primary; weighted merge optional (e.g., 0.7 vector + 0.3 BM25 for Persian, where keywords handle morphology better). Learned ranking: Offline-trained linear model if corpus allows.
-- **Query Planner Design:** Parse query lang; for Persian, apply stemming/query expansion; execute parallel searches; fuse scores.
-- **Retrieval Pipeline:** Pre-filter (ACLs, dates); retrieve; post-filter (dedup).
-- **Trade-Offs Between Options:**
-  - **Elasticsearch/OpenSearch:** Excellent Persian analyzers (ICU plugin for RTL/ZWNJ); high throughput but RAM-heavy.
-  - **PostgreSQL + pgvector + FTS:** Lightweight, ACID; weaker Persian tokenization—augment with extensions.
-  - **Dedicated Vector DB + Search Engine:** Qdrant (vectors) + Whoosh (BM25); flexible but more components to maintain offline.
-
----
-
-## G. Index Versioning Strategy
-
-- **Index Version Registry Design:** PostgreSQL table tracking versions; offline exports to JSON for backups.
-- **Embedding Model Version Tracking:** Each version links to model hash/path in local registry.
-- **Metadata Schema for Index Lifecycle:** Include `build_params` (e.g., HNSW M=16), `compatibility_flags` (e.g., dimension match).
-- **Rolling Index Migration:** Build new index in parallel; test offline with golden queries.
-- **Zero-Downtime Index Switching:** Use alias in config; atomic update via DB trigger.
-- **Backward Compatibility Handling:** Maintain old indexes for queries; deprecate after grace period. Offline: Manual verification before switch.
-
----
-
-## H. Re-Embedding Strategy (Model Evolution)
-
-- **Full vs Incremental Re-Embedding:** Incremental for minor changes (e.g., quantization); full for model swaps.
-- **Background Parallel Index Creation:** Low-priority workers process stored normalized text; offline queuing prevents overload.
-- **Consistency Guarantees (Strong vs Eventual):** Eventual for search (acceptable lag); strong for metadata. Trade-off: Eventual reduces downtime but risks stale results.
-- **Atomic Index Cutover Strategy:** Validate new index coverage; flip alias in DB.
-- **Query Routing During Migration:** Router directs % of queries to new index for A/B testing; full switch post-validation.
-- **Performance Optimization:** Batch size tuned to CPU (e.g., 32); prioritize Persian chunks if corpus skewed.
-
----
-
-## I. Persian / Multilingual NLP Challenges
-
-- **Unicode Normalization:** Apply **NFC** (not NFKC) per ADR-011 norm-v1.0. Mandatory mapping: U+064A (ي) → U+06CC (ی), U+0643 (ك) → U+06A9 (ک). Unify Persian/Arabic variants to Persian forms to prevent embedding fragmentation. See `normalization.py` (single implementation of the contract).
-- **ZWNJ (Half-Space) Handling:** **Preserve ZWNJ (U+200C) as-is**; never delete or convert to space per ADR-011 norm-v1.0. Analyzer/query path must match the canonical ZWNJ-preserved form.
-- **Character Variants:** Custom mapping table for offline use; apply pre-tokenization.
-- **Tokenization Issues:** Use morphology-aware tokenizers; handle agglutinative Persian words to avoid subword overflow.
-- **Stopword Strategy:** Curated list (e.g., from Hazm) + custom additions for domain-specific terms; bilingual lists for mixed docs.
-- **Morphology & Stemming:** Persian stemmer (e.g., DadmaTools) for BM25; reduces index size by 20-30%.
-- **RTL Considerations:** Do **not** reverse text (forbidden by norm-v1.0); ensure query/display handles bidi over logical order.
-- **Multilingual Embedding Alignment:** Use aligned models (e.g., LaBSE); offline fine-tune if needed for Persian-English cross-lingual recall.
-- **Chunking Heuristics for Persian Text:** Sentence-based with RTL-aware boundaries; max chunk 512 tokens; overlap for context preservation.
-
----
-
-## J. CPU-Only Performance & Cost Optimization
-
-- **Embedding Batch Sizing:** Dynamic: Start at 16, adjust based on CPU load; offline profiling for Persian text (longer sentences increase time).
-- **Quantization Strategies:** ONNX Runtime with INT8/FP16; reduces model footprint 4x, inference 2x faster with <2% accuracy drop.
-- **Index Type Selection:** HNSW for fast queries; IVF for large corpora (trade-off: build time vs. recall). Flat for small setups.
-- **Memory Footprint Control:** Vector compression (PQ); limit index to RAM-resident for speed.
-- **Storage Layout Optimization:** SSD for indexes; HDD for raw files. Offline: Defrag indexes periodically.
-- **Concurrency Model:** Threaded workers (e.g., 4 per core); avoid over-subscription.
-- **Caching Strategy:** LRU cache for frequent embeddings/queries; local Redis.
-- **Cold Start Mitigation:** Pre-warm models on startup; offline scripts for benchmarking.
-- **Disk vs RAM Trade-Offs:** RAM for hot indexes (fast); disk for cold (cost-effective); hybrid for Persian corpora where queries are sparse.
-
----
-
-## K. Observability & Auditability
-
-- **Structured Logging Strategy:** JSON logs with fields (e.g., `event_type`, `persian_text_length`); rotate offline.
-- **Metrics and Monitoring in Offline Mode:** Prometheus scrapes local endpoints; export to files for analysis.
-- **Index Health Monitoring:** Check fragmentation, dimension consistency.
-- **Embedding Drift Detection:** Offline batch jobs compare distributions (KS-test) quarterly.
-- **Retrieval Quality Monitoring:** Log MRR per query; aggregate locally.
-- **Audit Trail for Document and Index Changes:** Immutable logs in PostgreSQL; include Persian-specific events (e.g., normalization applied).
-- **Failure Tracing Strategy:** Distributed tracing with local Jaeger; no external sends.
-
----
-
-## L. Data Governance & Compliance
-
-- **Data Lineage Tracking:** Track full chain (source → normalized → embedded) in DB; queryable for audits.
-- **Document-Level Access Control (ACL):** RBAC with groups; enforce at retrieval.
-- **Sensitive Data Tagging:** Offline ML classifier tags PII (e.g., Persian names); mask in responses.
-- **Retention Policy:** Configurable (e.g., delete after 5 years); automated via cron jobs.
-- **Role-Based Access Model:** Admin/Reader/Auditor; local auth.
-- **Index-Level Security Boundaries:** Partition indexes by sensitivity; Persian docs often tagged "confidential" due to cultural contexts.
-
----
-
-## M. Consistency & Reliability Model
-
-- **Strong vs Eventual Consistency Trade-Offs:** Strong for ingestion/metadata (immediate visibility); eventual for indexes (lag <5min acceptable offline).
-- **Atomic Index Switching Mechanism:** DB transaction flips alias; rollback on failure.
-- **Read/Write Isolation During Reindex:** Shadow writes to both indexes; reads from old until switch.
-- **Idempotent Background Jobs:** Use job IDs; retry with backoff.
-- **Failure Recovery Design:** Checkpointing for long jobs; offline rebuild from logs.
-- **Retry & Dead-Letter Queue Strategy:** Exponential retry (max 5); DLQ for manual review, especially for Persian parsing failures.
-
----
-
-## N. Backup & Disaster Recovery (Offline Context)
-
-- **Index Snapshotting Strategy:** Filesystem snapshots (e.g., BTRFS); versioned for rollback.
-- **Raw Document Canonical Storage:** MinIO with replication; immutable buckets.
-- **Rebuild-from-Source Design:** Scripts to re-ingest from raw + normalized text; prioritized for Persian to minimize downtime.
-- **Cold vs Hot Backup Trade-Offs:** Hot (live snapshots) for low RTO (<1h); cold (offline dumps) for low cost but higher RTO (4-8h).
-- **Recovery Time Objectives:** RTO <2h for metadata, <24h for full index; tested quarterly offline.
-
----
-
-## O. Evaluation & Quality Control
-
-- **Retrieval Evaluation Metrics:** Recall@K, MRR, NDCG; compute offline on held-out set.
-- **Golden Query Test Set Design:** Curated bilingual queries (50% Persian); include edge cases like ZWNJ variants.
-- **Embedding Benchmarking:** Offline A/B tests on precision/recall for new models.
-- **Drift Detection Over Time:** Monitor vector centroids; alert if Persian cluster shifts >10%.
-- **Continuous Validation Pipeline (Offline):** Scheduled jobs run golden set; fail if metrics drop >3%; log results locally.
-
----
-
-## P. Scalability Roadmap
-
-- **Single-Node Production Architecture:** All-in-one server (e.g., 128GB RAM, 32 cores); Docker for isolation.
-- **Vertical Scaling Strategy:** Upgrade hardware; partition data (e.g., Persian-only node).
-- **Horizontal Scaling Evolution:** Add nodes for workers/index replicas.
-- **Cluster-Ready Design:** Kubernetes manifests; shared MinIO for storage.
-- **Future GPU Integration Strategy:** Conditional loading in code; offline model conversion to CUDA.
-
----
-
-## Q. Storage Layer (Built on Foundational Data Lake Layer)
-
-The **Storage Layer** is implemented **on top of** the Foundational Data Lake Layer — Data Lake is the foundation and Source of Truth, not a sub-component of Storage. Data Lake zones (Raw / Processed / Curated), partitioning convention, Catalog design, and Persian-first considerations are defined in `Data-Lake-Discussion-Summary.md` (SSOT).
-
-- **Raw Zone (`minio://raw/`):** Immutable raw files; versioned objects; partitioned by `source=` and `ingest_date=`.
-- **Processed Zone (`minio://processed/`):** Normalized text and Parquet tables; partitioned by `date=YYYY/MM` + `source=erp/crm/hr`.
-- **Curated / Entity Zone (`minio://curated/`):** Entity-Centric Documents for direct RAG consumption.
-
-- **Metadata Schema (SQL / Catalog):**
-  ```sql
-  CREATE TABLE documents (
-      id UUID PRIMARY KEY,
-      content_hash CHAR(64) UNIQUE,
-      filename TEXT,
-      lang ENUM('fa', 'en', 'mixed'),
-      metadata JSONB,
-      acl_groups TEXT[],
-      versions JSONB, -- array of {version_id, timestamp}
-      zone ENUM('raw', 'processed', 'curated'), -- Data Lake zone
-      partition_path TEXT -- e.g., source=erp/date=2025/10/
-  );
-  CREATE TABLE chunks (
-      id UUID PRIMARY KEY,
-      doc_id UUID REFERENCES documents,
-      chunk_text TEXT,
-      norm_text TEXT, -- Persian-normalized
-      embedding_version VARCHAR,
-      entity_id UUID NULL, -- FK to entity in Curated Zone
-      entity_type TEXT NULL -- customer/order/product
-  );
-  CREATE TABLE entities (
-      id UUID PRIMARY KEY,
-      entity_type TEXT, -- customer, order, product
-      business_key TEXT, -- natural key from source system
-      entity_doc_path TEXT, -- path in MinIO curated/
-      metadata JSONB, -- denormalized attributes
-      created_at TIMESTAMP,
-      updated_at TIMESTAMP
-  );
-  CREATE INDEX idx_chunks_entity ON chunks(entity_id) WHERE entity_id IS NOT NULL;
-  ```
-- **Vector DB Schema:** Collections with fields: `id`, `vector`, `payload` (incl. `lang`, `acl`, `entity_id`, `entity_type`).
-- **Index Version Registry Schema:** Table with `version_tag`, `model_hash`, `build_date`, `source_zone`.
-- **Deduplication Registry:** Table mapping duplicate chunks to canonical IDs.
-
----
-
-## R. Background Processing Architecture
-
-- **Task Queue Design:** Redis for fast, RabbitMQ for durable; offline persistence.
-- **Job Orchestration Model:** Celery with priority queues (e.g., high for queries).
-- **Parallelism Strategy:** Worker pools scaled to CPU cores; embarrassingly parallel for embedding.
-- **Failure Recovery:** Auto-retry; checkpoints for Persian-heavy jobs.
-- **Idempotency Guarantees:** Job hashes; abort duplicates.
-
----
-
-## S. Open-Source Tooling Recommendations
-
-| Component                            | Tool Recommendation                                                                                                                      | Trade-Off / Rationale / Details                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Vector Database**            | **Qdrant** (primary); **Faiss** (alternative for pure vectors); **LanceDB** (for disk-optimized)                       | Qdrant: Rust-based, CPU-efficient HNSW/IVF indexes, supports hybrid sparse vectors for BM25 integration; offline-friendly with file-based persistence. Trade-off: Less mature than OpenSearch but lower RAM (up to 30% savings on large Persian corpora). Faiss: Facebook's library for in-memory vectors; integrate via Python for custom apps—fast but no built-in query lang. LanceDB: Arrow-based for offline analytics; excels in cold storage trade-offs. All load locally without internet. |
-| **Hybrid Search Engine**       | **OpenSearch** (with ICU plugin); **Whoosh** (lightweight Python alternative)                                                | OpenSearch: Fork of Elasticsearch; strong Persian analyzers (RTL, ZWNJ via custom ICU chains), score fusion built-in. Offline: Run in Docker, no AWS deps. Trade-off: Higher resource use vs. better recall in multilingual setups. Whoosh: Pure Python, no external deps; ideal for small offline nodes but slower indexing (2-5x vs. OpenSearch).                                                                                                                                                 |
-| **OCR / Document Parser**      | **Docling/Surya** (AI-based); **Tesseract OCR** (with Persian traineddata); **pdfplumber** (for structured extraction) | Docling/Surya: Modern ML parsers for layouts/tables; offline via local models. Trade-off: CPU-heavy but accurate for mixed Persian-English PDFs. Tesseract: Free, supports Persian out-of-box; augment with custom training data for handwriting. pdfplumber: Lightweight for text/tables; no ML, fast on CPU. All run fully offline.                                                                                                                                                               |
-| **NLP Framework**              | **Haystack** (pipelines); **LangChain** (prototyping); **Transformers** (HuggingFace for custom)                       | Haystack: Production-focused for RAG; modular, offline model loading. Trade-off: Steeper curve but better extensibility. LangChain: Quick for chains; offline-compatible. Transformers: Core library for tokenization/embedding; use with local Persian models like ParsBERT for stemming.                                                                                                                                                                                                          |
-| **Persian NLP Specific**       | **Hazm** + **DadmaTools**; **Stanza** (Stanford NLP with Persian support)                                              | Hazm/Dadma: Python libs for normalization, stemming, POS tagging; offline, lightweight. Trade-off: Hazm faster, Dadma more accurate for morphology. Stanza: Multi-lingual pipeline; download models once offline; handles RTL/ZWNJ robustly. Essential for preprocessing to boost retrieval by 10-20% in Persian.                                                                                                                                                                                   |
-| **Embedding Model**            | **intfloat/multilingual-e5-large** (quantized); **LaBSE** (for cross-lingual); **ParsBERT** (Persian-tuned)            | Multilingual-e5: Balanced size/performance; ONNX-quantized for CPU. Trade-off: General but may underperform on pure Persian—fine-tune offline. LaBSE: Aligned for Persian-English; better dedup. ParsBERT: BERT-based for Persian; smaller, faster on CPU. All stored locally.                                                                                                                                                                                                                     |
-| **Local LLM for RAG**          | **Llama.cpp** (with GGUF quantized models); **Ollama** (containerized)                                                       | Llama.cpp: C++ for CPU inference; supports Llama/Mistral models quantized to 4-bit. Trade-off: Fast but no fine-tuning. Ollama: Easy Docker deployment; offline model pulls from local registry. Use for generation in air-gapped.                                                                                                                                                                                                                                                                  |
-| **Task Queue / Orchestration** | **Celery** (with Redis/RabbitMQ); **Temporal** (for complex workflows)                                                       | Celery: Mature Python; idempotent, offline. Trade-off: Simple but scales via workers. Temporal: Go-based for resilience; better failure handling in long offline jobs like re-embedding.                                                                                                                                                                                                                                                                                                            |
-| **Database**                   | **PostgreSQL 16** (with pgvector); **SQLite** (for small setups)                                                             | PostgreSQL: Robust JSONB, extensions for vectors/FTS; offline ACID. Trade-off: Heavier than SQLite but essential for governance. SQLite: Lightweight for single-node; use for testing.                                                                                                                                                                                                                                                                                                              |
-| **Observability**              | **Prometheus + Grafana** (metrics/dashboards); **Loki + Grafana** (logs); **Jaeger** (tracing)                         | Prometheus/Grafana: Local scraping/visualization; offline exports to CSV. Trade-off: No cloud integration—manual alerts. Loki: LogQL for queries; pairs with Grafana for Persian log filtering. Jaeger: End-to-end tracing; fully local.                                                                                                                                                                                                                                                           |
-| **Backup / Storage**           | **MinIO** (S3-compatible); **Duplicity** (encrypted backups)                                                                 | MinIO: Self-hosted object store; offline replication. Trade-off: S3 API but local only. Duplicity: Incremental encrypted backups to local drives; air-gapped compliant.                                                                                                                                                                                                                                                                                                                             |
-
-**Additional Notes on Tools:** All recommendations are production-ready, open-source, and optimized for offline/CPU use. For Persian, prioritize tools with built-in support (e.g., ICU in OpenSearch). Offline deployment: Use Docker Compose for isolation; pre-download all models/dependencies during setup. Trade-offs evaluated based on benchmarks (e.g., e5-large quantized: 500ms/chunk on 16-core CPU).
-
-### Implementation Note for Persian and Offline Context
-
-In air-gapped environments, establish a local "model vault" directory for all artifacts (e.g., /opt/models); use scripts to verify hashes on import. For Persian accuracy, benchmark normalization pipelines offline: E.g., ZWNJ mishandling can drop recall by 15%—always unify to canonical forms. Ensure OS-level UTF-8 support in containers to handle RTL filenames without corruption. Periodic offline audits (e.g., via custom scripts) simulate internet-free updates.
+**Document Status:** Proposed for review.  
+**No implementation or repository changes are authorized by this document alone.**
