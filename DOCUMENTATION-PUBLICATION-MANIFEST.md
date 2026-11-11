@@ -78,3 +78,26 @@ These are not automatically replaced or deleted by this work. In line with the c
 - Persian Requirements, roadmap sources, and final RTM remain outstanding.
 - Cross-document ADR/OPEN identifier collisions, logical-architecture taxonomy, explicit shared Index Generation semantics, and approval/status header reconciliation remain open review items.
 - HLA review package remains a draft review artifact, not a final baseline.
+
+## 7. RTM and Architecture Gap Analysis — 2026-11-11
+
+| Document | Version | Status | Action on working branch | Notes |
+|---|---:|---|---|---|
+| ARC-RTM-001_Requirement-Traceability-Matrix.md | 0.1 | Draft — Practical Baseline (Provisional) | Added as new root document | Contains all 114 source requirement IDs and statements, source priorities/verification methods where defined, initial HLA chapter/component mappings, qualitative coverage and limitations. Not a formal verification or acceptance record. |
+| ARC-GAP-001_Architecture-Gap-Register.md | 0.1 | Draft — Initial Gap Analysis | Added as new root document | Captures 12 initial gaps and cross-document consistency findings derived from the practical RTM/HLA review. |
+
+### 7.1 Publication and quality controls
+
+- RTM rows were generated from the exact requirement table statements in the branch's Architecture Requirements & Constraints.md; source priority and verification method were retained for FR/DR/SEC/NFR/OPS. CON entries retain their source constraint wording and decision basis.
+- All 114 identifiers were checked for presence. HLA mappings and coverage statuses are qualitative first-pass judgments, not paragraph-level evidence.
+- RTM preserves the FR-036 source discrepancy (requirement sentence uses MUST; Priority column says SHOULD) without resolving it.
+- The INT category is present in the source taxonomy but has no INT-xxx identifiers; none were invented.
+- Known ADR/OPEN cross-reference collisions are recorded as unresolved. OPEN references follow the current Scope & Decision Register/HLA mapping provisionally.
+- Both documents are drafts for project work. Their publication does not imply final content approval, HLA baseline approval, production readiness, or merge authorization to main.
+- The existing three v2.0 technical documents were not modified in this publication batch.
+
+### 7.2 Current staging summary update
+
+- Two new Markdown work products (RTM and Gap Register) are staged on the working branch.
+- The working branch remains separate from main; no merge to main is included in this authorization.
+- RTM v0.1 is the practical baseline for the next Architecture Gap Analysis/HLA revision cycle and is expected to be refined later.
