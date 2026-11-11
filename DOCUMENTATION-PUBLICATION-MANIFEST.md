@@ -113,3 +113,34 @@ These are not automatically replaced or deleted by this work. In line with the c
 - GAP Register v0.2 introduces explicit per-gap status tracking: GAP-001 is Partially Resolved; GAP-002…GAP-012 remain Open at this point.
 - OPEN-010 (hardware sizing) and OPEN-005 (embedding/LLM selection) remain open. Detailed workload values, benchmark execution, capacity sizing, and acceptance thresholds are deferred to Detailed Architecture / Benchmark and production acceptance.
 - Changes are limited to the working branch `docs/architecture-baseline-v0.1`; no merge to `main` is performed.
+
+
+## 9. ADR-007 / ADR-008 and GAP-006 / GAP-007 closure — 2026-11-11
+
+### 9.1 Accepted architecture decisions
+
+| ADR | Decision | Scope | Status |
+|---|---|---|---|
+| ADR-007 | Baseline Document-Level Authorization | Initial Production baseline: stable `issuer + subject` user identity, distinct service principals, trusted group IDs, PostgreSQL-owned document-level READ ACL, default-deny/no inheritance, Qdrant/OpenSearch ACL pre-filter, authoritative pre-fetch/context revalidation, fail-closed behavior, direct ACL revocation enforcement, and tracked synchronization to both indexes. | Accepted by explicit user approval; recorded in English and Persian Scope & Decision Register v0.3 and HLA review package revision 0.3. |
+| ADR-008 | Coordinated Index Generation Activation & Rollback | Shared Qdrant/OpenSearch generation identity and manifest; PostgreSQL active-generation pointer; paired validation/activation; strict same-generation hybrid queries; fail-closed mismatch/engine behavior; explicit rollback; preserve prior active document version. | Accepted by explicit user approval; recorded in English and Persian Scope & Decision Register v0.3 and HLA review package revision 0.3. |
+
+### 9.2 Gap disposition and traceability
+
+- GAP-006: **Resolved for Initial Production Architecture Baseline** by ADR-007. OPEN-003 remains for advanced RBAC, nested groups, ACL inheritance, IdP product choice, and identity-context freshness/revocation details. These residuals are not represented as resolved.
+- GAP-007: **Resolved for Initial Production Architecture Baseline** by ADR-008. Detailed API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work.
+- OPEN-011 is removed from the active open-decision list and recorded as resolved by ADR-008.
+- ARC-RTM-001 v0.3 maps the relevant authorization and index-generation requirements to ADR-007/ADR-008. FR-029 and NFR-010 are Covered at architecture-design level; no runtime test evidence is claimed. Coverage snapshot: Covered 50, Partial 45, TBD 19, Not Covered 0 (114 total).
+- ARC-GAP-001 v0.3 records GAP-006 and GAP-007 as Resolved within the stated Initial Production scope. GAP-001 remains Partially Resolved; GAP-002…GAP-005 and GAP-008…GAP-012 retain their prior open status.
+
+### 9.3 Files updated on the working branch
+
+| File | Revision | Change |
+|---|---:|---|
+| Architecture Scope & Decision Register.md | 0.3 | Added ADR-007/ADR-008; narrowed OPEN-003 to advanced authorization extensions; closed OPEN-011. |
+| محدوده معماری و دفتر ثبت تصمیمات.md | 0.3 | Persian counterpart updated consistently. |
+| ARC-HLA-001_HLA-v0.1_Review-Package.md | Review package 0.3 | Added authorization and generation contracts to English and Persian HLA chapters 8.11/8.12 and 19/20. |
+| ARC-RTM-001_Requirement-Traceability-Matrix.md | 0.3 | Updated ADR traceability, coverage judgments, notes, and coverage snapshot. |
+| ARC-GAP-001_Architecture-Gap-Register.md | 0.3 | Closed GAP-006/007 at Initial Production baseline scope with explicit residual boundaries. |
+| DOCUMENTATION-PUBLICATION-MANIFEST.md | Section 9 | Recorded approval scope, disposition, and publication controls. |
+
+All changes are limited to `docs/architecture-baseline-v0.1`. No v2.0 technical source document was changed. No merge to `main` is performed or authorized by this update. The HLA remains Draft for Architecture Review; these edits do not establish implementation completion, runtime test evidence, production acceptance, or final HLA baseline approval.
