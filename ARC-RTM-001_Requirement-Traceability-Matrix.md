@@ -1,10 +1,10 @@
 # ARC-RTM-001 — Requirement Traceability Matrix
 
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** Draft — Practical Baseline (Provisional)  
 **Date:** 2026-11-11  
 **Source requirements:** `Architecture Requirements & Constraints.md` v0.1  
-**Architecture source:** `ARC-HLA-001_HLA-v0.1_Review-Package.md` v0.1  
+**Architecture source:** `ARC-HLA-001_HLA-v0.1_Review-Package.md` review package revision 0.3  
 **Working branch:** `docs/architecture-baseline-v0.1`
 
 ## 1. Purpose and use
@@ -58,7 +58,7 @@ The HLA chapter numbers refer to the 17-chapter English draft in ARC-HLA-001. Co
 | FR-012 | The processing workflow MUST record relevant processing metadata and lineage. | MUST | Inspection / Test | 8; 7 | Parser/OCR; Normalization; Chunking; Canonical Artifact Manager | OPEN-007; OPEN-009; ADR-001; ADR-002 | Covered | High-level processing stages and canonical artifact ownership are described; detailed processing policy remains open. |
 | FR-013 | The system SHOULD support document-type-aware processing where justified by the supported document corpus. | SHOULD | Test | 8 | Document Processing | — | Partial | Document-type-aware processing is conditional on corpus justification. |
 | FR-014 | The normalization policy, tokenizer, chunking strategy, chunk size, and overlap MUST be defined and validated before production acceptance. | MUST | Analysis / Benchmark | 8; 17 | Normalization; Tokenizer; Chunking | OPEN-007; OPEN-009 | TBD | HLA explicitly defers policy and chunking parameters; production validation remains required. |
-| FR-015 | The system MUST maintain authoritative document metadata in PostgreSQL. | MUST | Inspection / Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
+| FR-015 | The system MUST maintain authoritative document metadata in PostgreSQL. | MUST | Inspection / Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; ADR-008 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
 | FR-016 | The system MUST manage document versions and their lifecycle states. | MUST | Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
 | FR-017 | The system MUST support the approved document lifecycle, including normal and exceptional states. | MUST | Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
 | FR-018 | The system MUST prevent an unvalidated document version from becoming active. | MUST | Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
@@ -97,14 +97,14 @@ The HLA chapter numbers refer to the 17-chapter English draft in ARC-HLA-001. Co
 | DR-009 | Data deletion workflows MUST address relevant authoritative content, metadata, and derived representations according to the approved deletion policy. | MUST | Test | 12; 16 | Deletion; Derived Index Cleanup | OPEN-004; OPEN-011 | Partial | Deletion is mentioned, but approved deletion policy and index cleanup semantics are not specified. |
 | DR-010 | Data persistence and backup procedures MUST preserve the consistency and recoverability of required data domains. | MUST | Recovery Test | 16 | Backup; Recovery; Data Consistency | OPEN-004 | Partial | Recoverability principle exists; backup and recovery procedures remain open. |
 | SEC-001 | The system MUST authenticate users and services before granting access to protected capabilities. | MUST | Security Test | 2; 11 | Identity / Authentication | OPEN-003 | Partial | Authentication is assumed, but identity mechanism is not selected. |
-| SEC-002 | The system MUST enforce document-level authorization. | MUST | Security Test | 9; 11 | Document-level Authorization; Secure Retrieval | OPEN-003 | Covered | Authorization-aware retrieval and document-level enforcement are explicit. |
-| SEC-003 | Retrieval operations MUST be authorization-aware. | MUST | Security Test | 9; 11 | Document-level Authorization; Secure Retrieval | OPEN-003 | Covered | Authorization-aware retrieval and document-level enforcement are explicit. |
-| SEC-004 | Qdrant and OpenSearch MUST apply ACL-based filtering within their supported capabilities. | MUST | Security Test | 9; 11 | ACL Pre-filter in Qdrant and OpenSearch | ADR-004; OPEN-003 | Covered | Index-side ACL filtering is explicit. |
-| SEC-005 | The system MUST revalidate authorization against the authoritative PostgreSQL data before canonical content retrieval. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
-| SEC-006 | Authorization MUST be enforced before retrieved content is included in LLM context. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
-| SEC-007 | The system MUST fail closed when authorization cannot be established or revalidated. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
-| SEC-008 | Search-engine filtering MUST NOT be treated as a substitute for authoritative authorization validation. | MUST | Architecture Review / Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
-| SEC-009 | Object-storage access controls MUST NOT replace application-level document authorization. | MUST | Security Test | 7; 11 | Object Storage Access Boundary; Application Authorization | ADR-002; OPEN-003 | Covered | Object-store controls are not treated as replacement for application authorization. |
+| SEC-002 | The system MUST enforce document-level authorization. | MUST | Security Test | 9; 11 | Document-level Authorization; Secure Retrieval | ADR-007 | Covered | ADR-007 defines document-level READ authorization, default-deny, PostgreSQL ACL authority, and pre-fetch revalidation. Runtime security-test evidence remains outstanding. |
+| SEC-003 | Retrieval operations MUST be authorization-aware. | MUST | Security Test | 9; 11 | Document-level Authorization; Secure Retrieval | ADR-007 | Covered | ADR-007 defines dual-engine ACL pre-filtering and authoritative PostgreSQL revalidation before canonical fetch/context. |
+| SEC-004 | Qdrant and OpenSearch MUST apply ACL-based filtering within their supported capabilities. | MUST | Security Test | 9; 11 | ACL Pre-filter in Qdrant and OpenSearch | ADR-004; ADR-007 | Covered | ADR-007 requires ACL pre-filtering in both engines; runtime security-test evidence remains outstanding. |
+| SEC-005 | The system MUST revalidate authorization against the authoritative PostgreSQL data before canonical content retrieval. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; ADR-007 | Covered | ADR-007 specifies revalidation of document state, active version, and current ACL before canonical fetch/context. |
+| SEC-006 | Authorization MUST be enforced before retrieved content is included in LLM context. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; ADR-007 | Covered | ADR-007 requires PostgreSQL revalidation before content enters LLM context. |
+| SEC-007 | The system MUST fail closed when authorization cannot be established or revalidated. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; ADR-007 | Covered | ADR-007 enumerates invalid/expired identity context, PostgreSQL outage, retrieval-engine outage, and unapplyable ACL pre-filter as fail-closed conditions. |
+| SEC-008 | Search-engine filtering MUST NOT be treated as a substitute for authoritative authorization validation. | MUST | Architecture Review / Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; ADR-007 | Covered | ADR-007 explicitly treats index ACL pre-filters as an initial restriction, not the authoritative authorization decision. |
+| SEC-009 | Object-storage access controls MUST NOT replace application-level document authorization. | MUST | Security Test | 7; 11 | Object Storage Access Boundary; Application Authorization | ADR-002; ADR-007 | Covered | ADR-007 preserves application-level document authorization before canonical content fetch; object-store controls do not replace it. |
 | SEC-010 | Security-relevant operations and authorization outcomes MUST be auditable. | MUST | Inspection / Test | 11; 15 | Audit Events; Authorization Outcomes | — | Partial | Auditability is required at high level; event catalogue and retention are not defined. |
 | SEC-011 | The system MUST protect sensitive configuration and service credentials against unauthorized access. | MUST | Security Test | 14; 15 | Secrets; Configuration Protection | — | Partial | Protection is a requirement but concrete secrets/configuration controls are deferred. |
 | SEC-012 | Network communication between system components MUST follow the approved network segmentation and access-control design. | MUST | Inspection / Security Test | 11; 14 | Network Segmentation; Component Communication | ADR-005 | Partial | Controlled communications are referenced; detailed segmentation and rules are not provided. |
@@ -163,8 +163,8 @@ The HLA chapter numbers refer to the 17-chapter English draft in ARC-HLA-001. Co
 
 | Coverage status | Count |
 |---|---:|
-| Covered | 48 |
-| Partial | 47 |
+| Covered | 50 |
+| Partial | 45 |
 | TBD | 19 |
 | Not Covered | 0 |
 | **Total** | **114** |
@@ -176,7 +176,7 @@ These counts are an initial qualitative assessment, not a compliance score. In p
 1. **Provisional chapter mapping:** the HLA review package itself states that its earlier chapter-level requirement mapping was thematic and provisional. The mappings in this RTM are an improved first pass, but have not undergone paragraph-level evidence review.
 2. **INT category:** the taxonomy includes INT, but there are no INT requirement IDs in the source.
 3. **FR-036 normative wording:** the requirement sentence uses “MUST” while its Priority column is “SHOULD”. This RTM preserves the source Priority as SHOULD and does not resolve the discrepancy.
-4. **OPEN identifier collisions:** legacy architecture documents and the Scope & Decision Register use overlapping OPEN identifiers for different topics. References in this RTM follow the Scope & Decision Register/HLA mapping where possible; do not treat cross-document OPEN references as reconciled until the register is normalized.
+4. **OPEN identifier collisions:** legacy architecture documents use overlapping OPEN identifiers. For this revision, current references follow Scope & Decision Register v0.3; ADR-007 and ADR-008 now resolve the baseline authorization and index-generation contracts. Residual OPEN-003 concerns advanced authorization extensions only.
 5. **Verification evidence:** source verification methods are copied, but test cases, evidence links, owners, and acceptance results are intentionally outside this practical version.
 6. **Constraint rows:** CON requirements are constraints in the source and do not have the same Priority/Verification columns as FR/DR/SEC/NFR/OPS. They are marked “Constraint” and mapped to the applicable HLA view.
 7. **No implementation inference:** this matrix assesses only the current HLA text. It does not assert that a component exists or works.
@@ -188,7 +188,8 @@ Use this RTM to prioritize Architecture Gap Analysis, identify HLA chapters need
 ## 8. Revision plan
 
 - **v0.1:** initial practical baseline for Architecture Gap Analysis.
-- **v0.2 (current):** first HLA/RTM refinement after GAP-001; only evidence-supported coverage changes are made.
+- **v0.2:** first HLA/RTM refinement after GAP-001.
+- **v0.3 (current):** traceability updated for ADR-007/ADR-008; FR-029 and NFR-010 move to Covered at architecture-design level. Covered does not imply runtime verification.
 - **Next revision:** continue coverage and mapping updates as subsequent GAPs are addressed, while preserving unresolved and deferred items.
 - **v1.0:** add detailed evidence references, verification ownership, acceptance criteria, and implementation/test traceability when the project reaches that stage.
 
