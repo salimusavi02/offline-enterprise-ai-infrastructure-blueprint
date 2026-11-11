@@ -2,10 +2,10 @@
 ## Enterprise AI Infrastructure — High-Level Architecture
 **Document ID:** ARC-HLA-001  
 **Proposed Version:** 0.1  
-**Review Package Revision:** 0.2 — GAP-001 refinement  
+**Review Package Revision:** 0.3 — GAP-006 / GAP-007 refinement  
 **Status:** Draft for Architecture Review  
 **Review baseline date:** 2026-11-10  
-**Repository baseline:** `main` — read-only inspection only  
+**Working repository branch:** `docs/architecture-baseline-v0.1`  
 **Change control:** This revision updates the review package on `docs/architecture-baseline-v0.1` only; it does not modify `main`, merge branches, or approve the HLA baseline.
 
 ---
@@ -55,6 +55,8 @@ It does **not** finalize unresolved implementation details such as chunk size, m
 9. Canonical chunk content is stored in MinIO Processed Zone; PostgreSQL stores references and metadata, not the canonical chunk body.
 10. The initial physical deployment is single-node and CPU-only.
 11. Index activation across independent systems is a controlled workflow, not a distributed atomic database transaction.
+12. Document-level authorization follows ADR-007: PostgreSQL is authoritative, index ACL pre-filters are defense-in-depth, and authorization is revalidated before canonical content fetch/context construction.
+13. Qdrant and OpenSearch are activated as one generation under ADR-008; PostgreSQL alone owns the active-generation pointer and hybrid queries fail closed on generation/engine inconsistency.
 12. Normalization, search analysis, and chunking are distinct contracts and must not be conflated.
 
 ### 2.3 Logical architecture model
@@ -75,7 +77,7 @@ These are logical responsibility groupings, not necessarily separate hosts, netw
 - Recursive Tree Audit and Cross-Reference Inventory remain incomplete. Therefore file-existence, path, and cross-reference conclusions from earlier audits must be treated as provisional until those audits are completed.
 - The full text of the newly approved Requirements & Constraints v0.1 was not available in this turn's repository baseline. Requirement mapping below uses known identifier ranges and topic summaries, and is explicitly **provisional**.
 - The Persian Chunking design document is intentionally not modified or re-baselined here. Its detailed content is deferred to Detailed Architecture.
-- No new ADRs are authored as part of this work package. ADR-001…ADR-006 remain accepted decisions in the Decision Register; their standalone ADR documents are deferred.
+- ADR-007 (Baseline Document-Level Authorization) and ADR-008 (Coordinated Index Generation Activation & Rollback) are accepted in the Scope & Decision Register and are incorporated into this HLA revision. Their standalone ADR files are not required for this practical pass.
 
 ---
 
@@ -329,6 +331,14 @@ The platform must establish an authenticated principal and propagate the relevan
 
 If authorization data is unavailable, ambiguous, stale beyond an accepted policy, or cannot be evaluated, the platform must fail closed. Direct user access to canonical object storage must not bypass the authorization enforcement path. Security-relevant decisions and access events must be auditable.
 
+#### ADR-007 baseline authorization contract
+
+The baseline authorization model is document-level and default-deny. The trusted user identity key is `issuer + subject`; service principals are separate from human principals, and group IDs come from the trusted identity source. PostgreSQL owns document ACL and the baseline `READ` grant. No ACL inheritance is assumed.
+
+Qdrant and OpenSearch apply ACL pre-filters. After retrieval/fusion, PostgreSQL revalidates document state, active version, and current ACL before MinIO canonical content is fetched or any content enters LLM context. Invalid/expired identity context, PostgreSQL unavailability, retrieval-engine unavailability, or inability to apply a pre-filter fails closed. Direct PostgreSQL ACL revocation is enforced at revalidation even if indexes are stale; ACL synchronization is complete only after both indexes are updated. Delayed grants may cause false negatives, never disclosure.
+
+Group-membership changes are reflected through a fresh valid identity context. Identity-context maximum age and refresh/revocation behavior remain Detailed Security Design decisions. The IdP must be organization-approved and on-premises, but product selection, advanced RBAC, nested groups, and ACL inheritance remain OPEN-003 and outside this baseline.
+
 ### 8.12 Document Lifecycle, Versioning & Index Activation
 
 The high-level document lifecycle is:
@@ -338,6 +348,16 @@ The high-level document lifecycle is:
 Exceptional states include `FAILED`, `REJECTED`, `SUPERSEDED`, and `DELETED`.
 
 Index activation is a controlled workflow. The platform builds and validates the required Qdrant and OpenSearch index versions, records readiness, and then updates the authoritative active-version state through the activation controller. Because PostgreSQL, Qdrant, and OpenSearch do not share one distributed atomic transaction, the platform must use explicit readiness checks, recoverable state transitions, and rollback capability. A partially ready index pair must not be represented as a fully activated version.
+
+#### ADR-008 coordinated generation contract
+
+A single logical `generation_id` represents a compatible Qdrant/OpenSearch index pair and its configuration, not a document version. PostgreSQL is the sole authority for `active_generation_id`. The generation manifest records the target physical indexes, embedding model/version and vector dimensions, analyzer version, normalization/chunking contract versions, ACL schema version, expected document/chunk snapshot, validation result, and build timestamp.
+
+Generation states are `BUILDING → VALIDATING → READY → ACTIVE → RETIRED`, with `FAILED` for unsuccessful build/validation. Activation requires both engines ready on the same generation, validated expected document/chunk coverage and version relationships, consistent vector dimensions and ACL metadata, and successful retrieval smoke tests. PostgreSQL updates the active pointer in its own transaction; no distributed transaction is assumed.
+
+Every hybrid query reads the PostgreSQL pointer and queries both engines on that generation. RRF runs only after generation consistency is confirmed. Engine unavailability, generation mismatch, or inability to apply ACL pre-filter fails the whole hybrid request with a controlled error; partial results and silent fallback are prohibited. Build/validation failure leaves the previous generation active. Rollback is an explicit pointer change to a previously READY valid generation. A replacement document version is not activated until both index representations are ready and validated; indexing failure preserves the previously active version.
+
+Detailed API/schema, retry/reconciliation mechanics, retention, and in-flight query draining remain Detailed Architecture work. This contract is architecture-level and is not runtime test evidence.
 
 ### 8.13 Integration & Communication
 
@@ -365,7 +385,7 @@ RPO/RTO targets, backup cadence, media separation, off-site strategy, restore or
 
 ### 8.17 Constraints, Risks & Open Decisions
 
-The HLA preserves OPEN-001…OPEN-011 as unresolved decisions. The most material architectural dependencies include advanced authorization, application-layer responsibility boundaries, Persian normalization/search analysis/chunking contracts, embedding and LLM selection, hardware sizing, backup and recovery targets, catalog/lakehouse choices, entity-centric document modeling, and controlled index activation.
+The HLA preserves the remaining applicable open decisions; OPEN-011 is resolved by ADR-008. ADR-007 establishes the Initial Production document-level authorization baseline, while OPEN-003 is limited to advanced authorization extensions and identity-provider/freshness details. The most material architectural dependencies include advanced authorization, application-layer responsibility boundaries, Persian normalization/search analysis/chunking contracts, embedding and LLM selection, hardware sizing, backup and recovery targets, catalog/lakehouse choices, entity-centric document modeling, and controlled index activation.
 
 Future technologies and capabilities must remain outside the initial baseline unless justified through a spike, PoC, and explicit approval. This HLA is ready for architecture review only after the provisional traceability and repository cross-reference gaps are resolved or explicitly accepted as review limitations.
 
@@ -457,6 +477,14 @@ RAG Orchestrator بازیابی شواهد مجاز، ساخت Context و فرا
 
 در صورت عدم دسترسی به داده مجوزدهی، ابهام، کهنگی خارج از سیاست مصوب یا ناتوانی در ارزیابی، سامانه باید Fail-closed عمل کند. دسترسی مستقیم کاربر به Object Storage نباید مسیر اعمال مجوزدهی را دور بزند. تصمیمات و رویدادهای امنیتی باید قابل Audit باشند.
 
+#### قرارداد مجوزدهی پایه ADR-007
+
+مدل مجوزدهی خط مبنا در سطح سند و مبتنی بر Default Deny است. کلید هویت معتبر کاربر زوج `issuer + subject` است؛ Service Principal از Principal انسانی مستقل بوده و Group IDها از منبع هویت معتبر دریافت می‌شوند. مالک ACL اسناد PostgreSQL و مجوز پایه `READ` است. وراثت ACL فرض نمی‌شود.
+
+Qdrant و OpenSearch باید ACL Pre-filter اعمال کنند. پس از بازیابی/ادغام نتایج، PostgreSQL وضعیت سند، نسخه فعال و ACL جاری را پیش از Fetch محتوای Canonical از MinIO یا ورود محتوا به Context مدل مجدداً اعتبارسنجی می‌کند. Identity Context نامعتبر/منقضی، عدم دسترسی به PostgreSQL یا هر موتور بازیابی و عدم امکان اعمال Pre-filter باید به Fail-closed منجر شود. لغو مستقیم ACL در PostgreSQL حتی با وجود Indexهای قدیمی در نقطه اعتبارسنجی اعمال می‌شود؛ همگام‌سازی ACL تنها پس از به‌روزرسانی هر دو Index کامل است. تأخیر Grant می‌تواند False Negative ایجاد کند، اما هرگز نباید موجب افشای داده شود.
+
+تغییر عضویت گروه از طریق Identity Context تازه و معتبر منعکس می‌شود. حداکثر عمر Identity Context و رفتار Refresh/Revocation در Detailed Security Design تعیین می‌شوند. IdP باید مورد تأیید سازمان و On-Premises باشد، اما انتخاب محصول، Advanced RBAC، گروه‌های تو‌در‌تو و وراثت ACL ذیل OPEN-003 و خارج از این خط مبنا هستند.
+
 ## 20. چرخه عمر سند، نسخه‌بندی و فعال‌سازی Index
 
 چرخه عمر سطح بالای سند به شکل زیر است:
@@ -466,6 +494,16 @@ RAG Orchestrator بازیابی شواهد مجاز، ساخت Context و فرا
 وضعیت‌های استثنایی شامل `FAILED`، `REJECTED`، `SUPERSEDED` و `DELETED` هستند.
 
 فعال‌سازی Index یک Workflow کنترل‌شده است. سامانه نسخه‌های موردنیاز Qdrant و OpenSearch را ساخته و اعتبارسنجی می‌کند، آمادگی را ثبت می‌نماید و سپس Controller وضعیت نسخه فعال را از طریق مرجع معتبر PostgreSQL تغییر می‌دهد. از آنجا که PostgreSQL، Qdrant و OpenSearch تراکنش اتمیک توزیع‌شده مشترک ندارند، باید از کنترل آمادگی، انتقال وضعیت قابل بازیابی و قابلیت Rollback استفاده شود. یک جفت Index که تنها بخشی از آن آماده است نباید به‌عنوان نسخه فعال کامل معرفی شود.
+
+#### قرارداد Generation هماهنگ ADR-008
+
+یک `generation_id` منطقی مشترک، جفت سازگار Indexهای Qdrant و OpenSearch و پیکربندی آن‌ها را مشخص می‌کند و با نسخه سند متفاوت است. PostgreSQL تنها مرجع معتبر `active_generation_id` است. Generation Manifest شناسه Indexهای فیزیکی هدف، نسخه مدل Embedding و ابعاد بردار، نسخه Analyzer، نسخه قراردادهای Normalization/Chunking، نسخه ACL Schema، Snapshot اسناد/Chunkهای مورد انتظار، نتیجه Validation و زمان Build را ثبت می‌کند.
+
+وضعیت‌های Generation عبارت‌اند از `BUILDING → VALIDATING → READY → ACTIVE → RETIRED` و برای شکست Build/Validation وضعیت `FAILED` در نظر گرفته می‌شود. فعال‌سازی مستلزم آمادگی هر دو موتور با Generation یکسان، اعتبارسنجی پوشش اسناد/Chunkهای مورد انتظار و ارتباط نسخه‌ها، سازگاری ابعاد بردار و ACL Metadata و موفقیت Retrieval Smoke Test است. PostgreSQL Pointer فعال را در تراکنش داخلی خود تغییر می‌دهد؛ تراکنش توزیع‌شده فرض نمی‌شود.
+
+هر Query ترکیبی Pointer را از PostgreSQL می‌خواند و هر دو موتور را روی همان Generation Query می‌کند. RRF تنها پس از تأیید سازگاری Generation اجرا می‌شود. عدم دسترسی به هر موتور، اختلاف Generation یا عدم امکان اعمال ACL Pre-filter کل درخواست Hybrid را با خطای کنترل‌شده متوقف می‌کند؛ نتیجه ناقص یا بازگشت خاموش مجاز نیست. شکست Build/Validation نسل فعال قبلی را حفظ می‌کند. Rollback با تغییر صریح Pointer به Generation قبلی READY و معتبر انجام می‌شود. نسخه جایگزین سند تا آماده و معتبر شدن هر دو نمایش Index فعال نمی‌شود و شکست Indexing نسخه فعال قبلی را حفظ می‌کند.
+
+طراحی تفصیلی API/Schema، سازوکار Retry/Reconciliation، سیاست نگهداری و تخلیه Queryهای در حال اجرا به Detailed Architecture واگذار می‌شود. این قرارداد در سطح معماری است و شواهد آزمون Runtime محسوب نمی‌شود.
 
 ## 21. معماری یکپارچه‌سازی و ارتباطات
 
@@ -493,7 +531,7 @@ Kubernetes، کلاستر چندگره‌ای و شتاب‌دهی GPU بخشی 
 
 ## 25. محدودیت‌ها، ریسک‌ها و تصمیمات باز
 
-این HLA تصمیمات باز OPEN-001 تا OPEN-011 را حفظ می‌کند. وابستگی‌های مهم معماری شامل مجوزدهی پیشرفته، مرزبندی مسئولیت‌های لایه Application، قراردادهای مستقل Normalization/Search Analysis/Chunking فارسی، انتخاب Embedding و LLM، ظرفیت سخت‌افزار، اهداف Backup/Recovery، انتخاب Catalog/Lakehouse، مدل Entity-Centric و فعال‌سازی کنترل‌شده Index است.
+این HLA تصمیمات باز باقی‌مانده را حفظ می‌کند؛ OPEN-011 با ADR-008 بسته شده است. ADR-007 خط مبنای مجوزدهی در سطح سند برای انتشار اولیه عملیاتی را تعیین می‌کند و OPEN-003 به توسعه‌های پیشرفته مجوزدهی و جزئیات محصول/تازگی Identity Provider محدود می‌شود. وابستگی‌های مهم معماری شامل مجوزدهی پیشرفته، مرزبندی مسئولیت‌های لایه Application، قراردادهای مستقل Normalization/Search Analysis/Chunking فارسی، انتخاب Embedding و LLM، ظرفیت سخت‌افزار، اهداف Backup/Recovery، انتخاب Catalog/Lakehouse، مدل Entity-Centric و فعال‌سازی کنترل‌شده Index است.
 
 فناوری‌ها و قابلیت‌های آینده باید خارج از Baseline اولیه باقی بمانند، مگر آنکه از مسیر Spike، PoC و تصویب صریح عبور کنند. این HLA زمانی برای بازبینی معماری آماده تلقی می‌شود که شکاف‌های Traceability و Cross-Reference مخزن رفع شده یا به‌عنوان محدودیت بازبینی صریحاً پذیرفته شده باشند.
 
@@ -583,8 +621,8 @@ Kubernetes، کلاستر چندگره‌ای و شتاب‌دهی GPU بخشی 
 
 ## 31. Readiness statement
 
-**Current status: HLA v0.1 — Draft Package Ready for User Architecture Review, with Explicit Provisional Traceability.**
+**Current status: HLA v0.1 review package revision 0.3 — Draft for Architecture Review, with GAP-006 and GAP-007 architecture contracts incorporated.**
 
 This is a complete first-pass architecture narrative and diagram specification package, not a final approved architecture. The principal architecture invariants have been carried through consistently. The remaining blockers are not hidden: exact requirement-level traceability, repository-wide recursive inventory, cross-reference validation, bilingual editorial review, and user decisions on scope and unresolved OPEN items.
 
-No repository modifications have been made. This package is a review artifact only.
+This revision is committed only to `docs/architecture-baseline-v0.1`. It does not approve the HLA baseline, establish implementation/test evidence, or authorize a merge to `main`.
