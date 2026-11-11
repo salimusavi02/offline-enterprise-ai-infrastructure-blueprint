@@ -1,9 +1,9 @@
 # ARC-GAP-001 — Architecture Gap Register
 
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** Draft — In Progress  
 **Date:** 2026-11-11  
-**Inputs:** ARC-RTM-001 v0.1; ARC-HLA-001 HLA v0.1 Review Package; Architecture Scope & Decision Register v0.2  
+**Inputs:** ARC-RTM-001 v0.3; ARC-HLA-001 review package revision 0.3; Architecture Scope & Decision Register v0.3  
 **Working branch:** `docs/architecture-baseline-v0.1`
 
 ## 1. Purpose
@@ -47,12 +47,12 @@ This register captures material architecture gaps identified during the practica
 3. **FR-036 normative discrepancy:** source wording says MUST while Priority is SHOULD. Preserve the source value in RTM and resolve through Requirements change control.
 4. **INT taxonomy gap:** INT exists as a category but no INT-xxx identifiers are defined.
 5. **HLA evidence depth:** chapter mappings are adequate for practical gap discovery but do not constitute paragraph-level verification evidence.
-6. **Index-generation contract:** HLA describes controlled activation and avoids distributed-transaction claims; the shared logical generation identity and exact query/activation guardrails still need explicit consolidation.
+6. **Index-generation contract:** Resolved by ADR-008 and incorporated into HLA revision 0.3. The contract explicitly avoids distributed-transaction claims; runtime verification and detailed recovery mechanics remain future work.
 
 ## 5. Recommended HLA revision sequence
 
 1. Resolve document-governance collisions in ADR/OPEN cross-references without silently renumbering accepted decisions.
-2. Refine HLA chapters 7, 9 and 12 for data ownership, Strict Hybrid retrieval, shared index generation, activation and rollback.
+2. Incorporate ADR-007 and ADR-008 into HLA security and index activation chapters; the baseline contracts are now recorded in HLA revision 0.3.
 3. Refine HLA chapters 8 and 9 for separate normalization, search analyzer and chunking contracts.
 4. Refine HLA chapters 10 and 11 for evidence traceability, identity context and authorization enforcement.
 5. Refine HLA chapters 14–16 for offline supply chain, observability, backup and recovery.
@@ -65,7 +65,29 @@ This register captures material architecture gaps identified during the practica
 - Material gaps and open decisions are visible and assigned a suggested resolution point.
 - HLA revision can proceed without waiting for paragraph-level RTM evidence.
 
-## 7. Limitations
+## 7. GAP-006 and GAP-007 closure record — 2026-11-11
+
+### GAP-006 — Resolved for Initial Production Architecture Baseline
+
+- Accepted decision: ADR-007 — Baseline Document-Level Authorization.
+- Closure evidence: Scope & Decision Register v0.3; HLA review package revision 0.3, English §8.11 and Persian §19.
+- The baseline fixes stable user identity as `issuer + subject`, separates service principals, uses trusted stable group IDs, and limits baseline authorization to document-level `READ` with default-deny and no ACL inheritance.
+- PostgreSQL remains authoritative for ACL. Qdrant and OpenSearch apply ACL pre-filters; PostgreSQL revalidates document state, active version, and ACL before canonical content fetch/context assembly.
+- Invalid/expired identity context, PostgreSQL or retrieval-engine unavailability, and inability to apply ACL pre-filter fail closed. Direct ACL revocation is enforced at authoritative revalidation even if indexes are stale; dual-index ACL sync is tracked.
+- Residual OPEN-003 is limited to advanced RBAC, nested groups, ACL inheritance, IdP product selection, and identity-context freshness/revocation details. These do not block Detailed Architecture entry for the baseline authorization contract.
+
+### GAP-007 — Resolved for Initial Production Architecture Baseline
+
+- Accepted decision: ADR-008 — Coordinated Index Generation Activation & Rollback.
+- Closure evidence: Scope & Decision Register v0.3; HLA review package revision 0.3, English §8.12 and Persian §20.
+- PostgreSQL is the sole authority for `active_generation_id`; one shared generation identifies the compatible Qdrant/OpenSearch pair and its manifest/configuration.
+- Activation requires both engines ready and validated on the same generation. Hybrid queries use that generation in both engines and run RRF only after consistency checks. Engine unavailability, mismatch, or inability to apply ACL pre-filter fails the whole hybrid request.
+- Build/validation failure preserves the prior active generation; rollback is an explicit pointer change to a previously READY valid generation. Document version activation waits for both index representations.
+- No distributed transaction is assumed. API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work.
+
+These closures are architecture-contract closures for the Initial Production Baseline. They are not implementation completion, test execution, security certification, production acceptance, or HLA baseline approval.
+
+## 8. Limitations
 
 This is a first-pass register based on the current HLA review package and Requirements v0.1. Priority and resolution timing are recommendations, not approved project commitments. No implementation work, test execution, repository merge, or HLA baseline approval is implied.
 
