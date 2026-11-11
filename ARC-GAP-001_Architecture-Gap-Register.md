@@ -1,7 +1,7 @@
 # ARC-GAP-001 — Architecture Gap Register
 
-**Version:** 0.1  
-**Status:** Draft — Initial Gap Analysis  
+**Version:** 0.2  
+**Status:** Draft — In Progress  
 **Date:** 2026-11-11  
 **Inputs:** ARC-RTM-001 v0.1; ARC-HLA-001 HLA v0.1 Review Package; Architecture Scope & Decision Register v0.2  
 **Working branch:** `docs/architecture-baseline-v0.1`
@@ -18,20 +18,27 @@ This register captures material architecture gaps identified during the practica
 
 ## 3. Gap register
 
-| Gap ID | Gap / finding | Related requirements | HLA chapter(s) | Related ADR / OPEN | Priority | Recommended action | Suggested resolution point |
-|---|---|---|---|---|---|---|---|
-| GAP-001 | Performance and capacity targets are not established | NFR-001…NFR-005 | 14, 15 | OPEN-010; OPEN-005 | High | Define representative workload profile and benchmark plan; establish latency, throughput, capacity and CPU resource targets before production acceptance. | Before production acceptance; detailed targets may be resolved during Detailed Architecture. |
-| GAP-002 | Persian normalization policy is unresolved | FR-007, FR-014; NFR-020 | 8, 17 | OPEN-007 | High | Select and validate normalization policy; keep norm-v1.0 as implementation candidate until approved. | Resolve before production processing baseline. |
-| GAP-003 | Persian lexical analyzer is not selected or benchmarked | FR-025, FR-031 | 9, 17 | OPEN-008 | High | Benchmark candidate OpenSearch analyzers against representative Persian corpus and define analyzer contract. | Resolve before production search acceptance. |
-| GAP-004 | Chunking strategy and parameters are unresolved | FR-009, FR-010, FR-014 | 8, 17 | OPEN-009 | High | Define tokenizer, chunk boundary policy, size and overlap; validate retrieval quality and traceability. | Resolve before production indexing. |
-| GAP-005 | Embedding and local LLM choices are unresolved | FR-023, FR-034, FR-035; NFR-005 | 8, 9, 10, 14 | OPEN-005 | High | Evaluate candidate models under offline and CPU-only constraints; document quality/resource trade-offs. | Before model and production baseline selection. |
-| GAP-006 | Identity and advanced document authorization model is incomplete | SEC-001…SEC-014; FR-032, FR-039 | 2, 9, 11, 15 | OPEN-003 | High | Define identity source, principal/group/role mapping, ACL representation, revocation and failure behavior; retain PostgreSQL as authority. | Resolve before detailed security design and implementation. |
-| GAP-007 | Index generation activation and rollback need a more explicit contract | FR-018…FR-022, FR-029; NFR-008…NFR-010 | 9, 12, 16 | OPEN-011 | High | Specify shared logical Generation ID, paired Qdrant/OpenSearch readiness, PostgreSQL active pointer, partial-failure recovery and rollback. | Resolve before detailed indexing/activation design. |
-| GAP-008 | Backup, restore and recovery targets/procedures are open | DR-010; NFR-011…NFR-015; OPS-006, OPS-008 | 15, 16 | OPEN-004 | High | Define protected data domains, backup method/cadence, restore order, RPO/RTO and recovery validation. | Resolve before production acceptance. |
-| GAP-009 | Operational telemetry and audit details are incomplete | SEC-010, SEC-014; NFR-021…NFR-025 | 11, 15 | — | Medium | Define critical event catalogue, metrics, logs, traces/correlation, retention and alerting responsibilities. | Can be elaborated during Detailed Architecture. |
-| GAP-010 | Application component boundaries and integration contracts are not fully defined | FR-038…FR-042; NFR-016, NFR-017 | 5, 6, 13 | OPEN-006 | Medium | Clarify module responsibilities, ownership, inputs/outputs, synchronous/asynchronous interactions and failure contracts without prematurely splitting deployables. | Resolve during HLA refinement / Detailed Architecture. |
-| GAP-011 | Integration requirement category has no requirement identifiers | INT category in Requirements taxonomy | 4, 5, 13 | — | Medium | Decide whether existing FR/NFR requirements sufficiently cover integration or add explicit INT requirements through controlled Requirements revision. | Resolve during Requirements maintenance; do not invent IDs in RTM. |
-| GAP-012 | Offline deployment supply-chain and operational validation details are incomplete | OPS-004…OPS-008; SEC-011, SEC-012 | 11, 14, 15, 16 | OPEN-004; OPEN-010 | Medium | Define offline import/provenance/integrity process for images, packages, models and configuration; define post-install health checks. | Elaborate before deployment readiness. |
+### 3.1 Status definitions
+
+- **Resolved:** sufficiently addressed at HLA level; no material architecture gap remains for this stage.
+- **Partially Resolved:** HLA direction or control is clarified, but measurable targets, detailed contracts, or validation evidence remain outstanding.
+- **Deferred:** intentionally assigned to a later stage; the item remains visible and is not considered resolved.
+- **Open:** no sufficient resolution has yet been established.
+
+| Gap ID | Gap / finding | Related requirements | HLA chapter(s) | Related ADR / OPEN | Priority | Status | Recommended action | Suggested resolution point |
+|---|---|---|---|---|---|---|---|---|
+| GAP-001 | Performance and capacity targets are not established | NFR-001…NFR-005 | 14, 15 | OPEN-010; OPEN-005 | High | Partially Resolved | HLA now requires a representative workload profile and combined same-host benchmark; numerical targets and benchmark evidence remain outstanding. | Define workload and benchmark during Detailed Architecture; establish and validate targets before production acceptance. |
+| GAP-002 | Persian normalization policy is unresolved | FR-007, FR-014; NFR-020 | 8, 17 | OPEN-007 | High | Open | Select and validate normalization policy; keep norm-v1.0 as implementation candidate until approved. | Resolve before production processing baseline. |
+| GAP-003 | Persian lexical analyzer is not selected or benchmarked | FR-025, FR-031 | 9, 17 | OPEN-008 | High | Open | Benchmark candidate OpenSearch analyzers against representative Persian corpus and define analyzer contract. | Resolve before production search acceptance. |
+| GAP-004 | Chunking strategy and parameters are unresolved | FR-009, FR-010, FR-014 | 8, 17 | OPEN-009 | High | Open | Define tokenizer, chunk boundary policy, size and overlap; validate retrieval quality and traceability. | Resolve before production indexing. |
+| GAP-005 | Embedding and local LLM choices are unresolved | FR-023, FR-034, FR-035; NFR-005 | 8, 9, 10, 14 | OPEN-005 | High | Open | Evaluate candidate models under offline and CPU-only constraints; document quality/resource trade-offs. | Before model and production baseline selection. |
+| GAP-006 | Identity and advanced document authorization model is incomplete | SEC-001…SEC-014; FR-032, FR-039 | 2, 9, 11, 15 | OPEN-003 | High | Open | Define identity source, principal/group/role mapping, ACL representation, revocation and failure behavior; retain PostgreSQL as authority. | Resolve before detailed security design and implementation. |
+| GAP-007 | Index generation activation and rollback need a more explicit contract | FR-018…FR-022, FR-029; NFR-008…NFR-010 | 9, 12, 16 | OPEN-011 | High | Open | Specify shared logical Generation ID, paired Qdrant/OpenSearch readiness, PostgreSQL active pointer, partial-failure recovery and rollback. | Resolve before detailed indexing/activation design. |
+| GAP-008 | Backup, restore and recovery targets/procedures are open | DR-010; NFR-011…NFR-015; OPS-006, OPS-008 | 15, 16 | OPEN-004 | High | Open | Define protected data domains, backup method/cadence, restore order, RPO/RTO and recovery validation. | Resolve before production acceptance. |
+| GAP-009 | Operational telemetry and audit details are incomplete | SEC-010, SEC-014; NFR-021…NFR-025 | 11, 15 | — | Medium | Open | Define critical event catalogue, metrics, logs, traces/correlation, retention and alerting responsibilities. | Can be elaborated during Detailed Architecture. |
+| GAP-010 | Application component boundaries and integration contracts are not fully defined | FR-038…FR-042; NFR-016, NFR-017 | 5, 6, 13 | OPEN-006 | Medium | Open | Clarify module responsibilities, ownership, inputs/outputs, synchronous/asynchronous interactions and failure contracts without prematurely splitting deployables. | Resolve during HLA refinement / Detailed Architecture. |
+| GAP-011 | Integration requirement category has no requirement identifiers | INT category in Requirements taxonomy | 4, 5, 13 | — | Medium | Open | Decide whether existing FR/NFR requirements sufficiently cover integration or add explicit INT requirements through controlled Requirements revision. | Resolve during Requirements maintenance; do not invent IDs in RTM. |
+| GAP-012 | Offline deployment supply-chain and operational validation details are incomplete | OPS-004…OPS-008; SEC-011, SEC-012 | 11, 14, 15, 16 | OPEN-004; OPEN-010 | Medium | Open | Define offline import/provenance/integrity process for images, packages, models and configuration; define post-install health checks. | Elaborate before deployment readiness. |
 
 ## 4. Cross-document consistency findings
 
