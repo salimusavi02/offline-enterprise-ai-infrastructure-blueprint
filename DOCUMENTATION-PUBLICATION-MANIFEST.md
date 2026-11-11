@@ -25,16 +25,30 @@
 
 All four staged files were fetched back from the working branch after creation and their complete text lengths matched the source text read from the project Library. They were added as separate commits by the GitHub Contents API.
 
-## 3. Documents requiring source recovery or further verification
+## 3. Documents updated from approved v2.0 sources and remaining verification
 
 | Document | Language | Target version known from project history | Current repository state | Required action |
 |---|---|---:|---|---|
-| Enterprise AI Infrastructure: Document Intelligence & RAG Ecosystem | English | 2.0 | Existing root file; older content (header 1.3; internal title/version 1.1; blob observed: 0f16a44b2d0aa9c2ab374dc4372e55ad6332c668) | Recover the exact approved v2.0 source, diff against main, then update on this branch |
-| End-to-End Data Flow | English | 2.0 | Existing root file; header 1.1; blob observed: 310cbf7902a8362b1cf553c0414c94c9f01b6492 | Recover the exact approved v2.0 source, diff against main, then update on this branch |
-| Data-Lake-Discussion-Summary / Data Lake Architecture & Integration — Discussion Summary | English | 2.0 | Existing root file; header 1.1; blob observed: b5c54b223d9cd9332b9ff6a7179c8120fe01e56e | Recover the exact approved v2.0 source, diff against main, then update on this branch |
+| Enterprise AI Infrastructure: Document Intelligence & RAG Ecosystem | English | 2.0 | Content approval recorded in project history (2026-11-10); source header remains Proposed / Pending Document Approval | Replaced on working branch; exact source-to-GitHub read-back verified; commit `f46f0912186e7bc7c57942f19d08c240de7c0eb2` |
+| End-to-End Data Flow | English | 2.0 | Content approval recorded in project history (2026-11-10); source header remains Proposed / Pending Document Approval | Replaced on working branch; exact source-to-GitHub read-back verified; commit `e7695189fdd6aceae7c2a52b8f5feebf009df203` |
+| Data-Lake-Discussion-Summary / Data Lake Architecture & Integration — Discussion Summary | English | 2.0 | Content approval recorded in project history (2026-11-10); source header remains Proposed / Pending Review | Replaced on working branch; exact source-to-GitHub read-back verified; commit `af0b97fd834c59bc050536f4f2298fe79113fc9d` |
 | Architecture Requirements & Constraints | Persian | 0.1 | No same-name file found in the available project Library inventory or repository tree | Recover the final Persian source and verify bilingual parity before adding |
 | Project Roadmap, Milestones & Progress Tracker | English and Persian | v0.1 (version/status require verification) | Older RoadMap_1.md is under Archive; current paired roadmap sources were not available in the current Library inventory | Recover exact latest sources; decide whether these are baseline dependencies or a later publication batch |
 | Requirements Traceability Matrix (RTM) | Integrated, likely English-first | To be produced | No final requirement-level RTM identified | Build from the approved full requirement text (114 IDs); include as HLA Appendix C if appropriate, avoiding a duplicate standalone source unless needed |
+
+### 3.1 Cross-document review findings
+
+The three v2.0 documents were reviewed against one another and against the staged Scope & Decision Register, Requirements & Constraints, and HLA review package. The principal data-ownership and retrieval invariants are aligned: MinIO owns original and canonical content artifacts; PostgreSQL owns operational metadata, ACL, lifecycle, state, and lineage; Qdrant and OpenSearch are separate derived/rebuildable indexes; hybrid retrieval uses RRF; authorization is revalidated against PostgreSQL before canonical content fetch/context assembly; and the initial deployment remains single-node, offline-first, and Docker Compose-based.
+
+The following issues remain visible in the source documents and were not silently edited during publication:
+
+1. **ADR identifier collision:** the v2.0 Ecosystem document maps ADR-001 to Single-Node, ADR-002 to MinIO, ADR-003 to separate Qdrant/OpenSearch, and ADR-004 to canonical chunk ownership. The staged Scope & Decision Register/HLA use ADR-001…ADR-005 with different mappings (including PostgreSQL as ADR-003, search engines as ADR-004, and Single-Node/Docker Compose as ADR-005). The Data Lake summary also labels canonical chunks as ADR-004, conflicting with the staged ADR-004 mapping.
+2. **OPEN identifier collision:** the v2.0 Ecosystem document assigns OPEN-001…OPEN-008 to normalization, chunking, tokenizer, ACL, PostgreSQL schema, analyzer, sizing, and backup objectives. The staged Scope & Decision Register/HLA assign these identifiers differently and extend through OPEN-011 (including Entity-Centric Documents, Backup/Recovery, normalization, analyzer, chunking, and index activation). Cross-references must be reconciled before treating the identifiers as authoritative.
+3. **Logical architecture taxonomy:** the Data Lake summary describes Data Lake as part of a seven-layer logical architecture; the staged HLA uses three logical planes over a foundational data layer. The Ecosystem v2.0 uses its own logical-layer grouping. These descriptions need a common taxonomy or an explicit statement that they are views at different abstraction levels.
+4. **Index-generation semantics:** the v2.0 documents require compatible active Qdrant/OpenSearch versions and coordinated validation/activation, but do not explicitly define the accepted shared Index Generation identity and Strict Hybrid behavior as a single normative contract. HLA describes paired readiness and controlled activation; the shared-generation invariant should be made explicit in the appropriate baseline/ADR.
+5. **Approval/status headers:** project history records content approval of all three v2.0 documents on 2026-11-10, while their source headers still say Proposed / Pending Review. This publication preserved the exact source headers; content approval and document-status wording remain distinct and should be reconciled deliberately.
+
+These are review findings, not corrections. No source content was changed to resolve them.
 
 ## 4. Existing repository material — retain, review, or archive
 
@@ -60,6 +74,7 @@ These are not automatically replaced or deleted by this work. In line with the c
 
 - Working branch created from `main`.
 - Four Markdown files staged and read-back verified.
-- Three existing root documents identified for later exact-source updates.
+- Three existing root documents replaced from the exact v2.0 source files and read-back verified.
 - Persian Requirements, roadmap sources, and final RTM remain outstanding.
+- Cross-document ADR/OPEN identifier collisions, logical-architecture taxonomy, explicit shared Index Generation semantics, and approval/status header reconciliation remain open review items.
 - HLA review package remains a draft review artifact, not a final baseline.
