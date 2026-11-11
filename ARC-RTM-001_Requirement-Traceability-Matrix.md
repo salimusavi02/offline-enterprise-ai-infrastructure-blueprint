@@ -1,0 +1,194 @@
+# ARC-RTM-001 — Requirement Traceability Matrix
+
+**Version:** 0.1  
+**Status:** Draft — Practical Baseline (Provisional)  
+**Date:** 2026-11-11  
+**Source requirements:** `Architecture Requirements & Constraints.md` v0.1  
+**Architecture source:** `ARC-HLA-001_HLA-v0.1_Review-Package.md` v0.1  
+**Working branch:** `docs/architecture-baseline-v0.1`
+
+## 1. Purpose and use
+
+This is a practical, first-pass Requirement Traceability Matrix intended to support the next Architecture Gap Analysis and HLA revision. It is deliberately not a formal verification matrix, implementation traceability record, or architecture acceptance report.
+
+The requirement statements, identifiers, priorities and verification methods below are transcribed from the Requirements & Constraints source. HLA chapter/component mappings and coverage judgments are a pragmatic initial assessment based on the current HLA review package.
+
+## 2. Scope and counting
+
+| Requirement category | Count |
+|---|---:|
+| Functional (FR) | 42 |
+| Data (DR) | 10 |
+| Security (SEC) | 14 |
+| Non-Functional (NFR) | 25 |
+| Operational (OPS) | 8 |
+| Constraints (CON) | 15 |
+| **Total** | **114** |
+
+The Requirements document defines an Integration (INT) category, but contains no `INT-xxx` requirement identifiers. No new INT requirements have been invented in this RTM. This is recorded as a documentation gap for later disposition.
+
+## 3. Coverage status definitions
+
+| Status | Meaning |
+|---|---|
+| `Covered` | The requirement's architectural intent is represented in the current HLA at a reasonable high level. This does not imply implementation or verification. |
+| `Partial` | The topic is present, but a material aspect, contract, control, or operational detail remains unspecified. |
+| `TBD` | Coverage cannot be responsibly judged yet, or the requirement depends on an open decision, target, or benchmark. |
+| `Not Covered` | No recognizable HLA treatment was identified in this pass. |
+
+A `Covered` status is limited to HLA-level representation. It is not evidence of implementation, test execution, security validation, production readiness, or acceptance.
+
+## 4. Traceability matrix
+
+The HLA chapter numbers refer to the 17-chapter English draft in ARC-HLA-001. Component names are logical responsibilities, not final deployable-unit boundaries. ADR/OPEN references are provisional where cross-document identifier collisions are known.
+
+| Requirement ID | Requirement statement (source wording) | Priority | Verification method | HLA chapter(s) | Logical component / responsibility | ADR / OPEN | HLA coverage | Notes |
+|---|---|---|---|---|---|---|---|---|
+| FR-001 | The system MUST provide a controlled mechanism for submitting documents for ingestion. | MUST | Test | 8; 6 | Document Intake; Ingestion Controller; Validation; Audit | OPEN-006; ADR-001; ADR-002 | Partial | HLA describes controlled intake and validation, but detailed controls and failure outcomes need design. |
+| FR-002 | The system MUST validate submitted documents before initiating the processing workflow. | MUST | Test | 8; 6 | Document Intake; Ingestion Controller; Validation; Audit | OPEN-006; ADR-001; ADR-002 | Partial | HLA describes controlled intake and validation, but detailed controls and failure outcomes need design. |
+| FR-003 | The system MUST preserve the original submitted document as an authoritative content artifact. | MUST | Inspection / Test | 8; 6 | Document Intake; Ingestion Controller; Validation; Audit | OPEN-006; ADR-001; ADR-002 | Partial | HLA describes controlled intake and validation, but detailed controls and failure outcomes need design. |
+| FR-004 | The system MUST support identification of duplicate submissions using a content-integrity mechanism. | MUST | Test | 8; 6 | Document Intake; Ingestion Controller; Validation; Audit | OPEN-006; ADR-001; ADR-002 | Partial | HLA describes controlled intake and validation, but detailed controls and failure outcomes need design. |
+| FR-005 | The system MUST maintain traceability between an ingested document, its versions, and the associated processing artifacts. | MUST | Inspection / Test | 8; 6 | Document Intake; Ingestion Controller; Validation; Audit | OPEN-006; ADR-001; ADR-002 | Partial | HLA describes controlled intake and validation, but detailed controls and failure outcomes need design. |
+| FR-006 | The system MUST record ingestion and validation outcomes, including failure information. | MUST | Test | 8; 6 | Document Intake; Ingestion Controller; Validation; Audit | OPEN-006; ADR-001; ADR-002 | Partial | HLA describes controlled intake and validation, but detailed controls and failure outcomes need design. |
+| FR-007 | The system MUST provide a document-processing workflow suitable for Persian-first document workloads. | MUST | Test | 8; 7 | Parser/OCR; Normalization; Chunking; Canonical Artifact Manager | OPEN-007; OPEN-009; ADR-001; ADR-002 | Covered | High-level processing stages and canonical artifact ownership are described; detailed processing policy remains open. |
+| FR-008 | The processing workflow MUST support extraction of document content into a form suitable for subsequent normalization and retrieval. | MUST | Test | 8; 7 | Parser/OCR; Normalization; Chunking; Canonical Artifact Manager | OPEN-007; OPEN-009; ADR-001; ADR-002 | Covered | High-level processing stages and canonical artifact ownership are described; detailed processing policy remains open. |
+| FR-009 | The system MUST provide a document chunking capability. | MUST | Test | 8; 7 | Parser/OCR; Normalization; Chunking; Canonical Artifact Manager | OPEN-007; OPEN-009; ADR-001; ADR-002 | Covered | High-level processing stages and canonical artifact ownership are described; detailed processing policy remains open. |
+| FR-010 | The system MUST preserve the relationship between canonical chunks and their originating document and version. | MUST | Inspection / Test | 8; 7 | Parser/OCR; Normalization; Chunking; Canonical Artifact Manager | OPEN-007; OPEN-009; ADR-001; ADR-002 | Covered | High-level processing stages and canonical artifact ownership are described; detailed processing policy remains open. |
+| FR-011 | The system MUST persist canonical chunks as authoritative content artifacts in the Processed Zone of MinIO. | MUST | Inspection / Test | 8; 7 | Parser/OCR; Normalization; Chunking; Canonical Artifact Manager | OPEN-007; OPEN-009; ADR-001; ADR-002 | Covered | High-level processing stages and canonical artifact ownership are described; detailed processing policy remains open. |
+| FR-012 | The processing workflow MUST record relevant processing metadata and lineage. | MUST | Inspection / Test | 8; 7 | Parser/OCR; Normalization; Chunking; Canonical Artifact Manager | OPEN-007; OPEN-009; ADR-001; ADR-002 | Covered | High-level processing stages and canonical artifact ownership are described; detailed processing policy remains open. |
+| FR-013 | The system SHOULD support document-type-aware processing where justified by the supported document corpus. | SHOULD | Test | 8 | Document Processing | — | Partial | Document-type-aware processing is conditional on corpus justification. |
+| FR-014 | The normalization policy, tokenizer, chunking strategy, chunk size, and overlap MUST be defined and validated before production acceptance. | MUST | Analysis / Benchmark | 8; 17 | Normalization; Tokenizer; Chunking | OPEN-007; OPEN-009 | TBD | HLA explicitly defers policy and chunking parameters; production validation remains required. |
+| FR-015 | The system MUST maintain authoritative document metadata in PostgreSQL. | MUST | Inspection / Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
+| FR-016 | The system MUST manage document versions and their lifecycle states. | MUST | Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
+| FR-017 | The system MUST support the approved document lifecycle, including normal and exceptional states. | MUST | Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
+| FR-018 | The system MUST prevent an unvalidated document version from becoming active. | MUST | Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
+| FR-019 | The system MUST retain the previously active version until the replacement version has passed the required validation and activation process. | MUST | Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
+| FR-020 | The system MUST maintain traceability between document versions, processing runs, and derived indexes. | MUST | Inspection / Test | 7; 12 | Metadata & Lifecycle Service; Version Management | ADR-003; OPEN-011 | Covered | Metadata ownership, lifecycle, versioning and activation principles are described at HLA level. |
+| FR-021 | The system MUST support document update, deletion, and reprocessing workflows. | MUST | Test | 12; 15; 16 | Lifecycle Controller; Reconciliation; Deletion Workflow | OPEN-004; OPEN-011 | Partial | Update/reprocess and reconciliation are referenced; detailed deletion and recovery behavior is deferred. |
+| FR-022 | The system MUST provide a mechanism to identify and reconcile inconsistent or incomplete processing and indexing states. | MUST | Test | 12; 15; 16 | Lifecycle Controller; Reconciliation; Deletion Workflow | OPEN-004; OPEN-011 | Partial | Update/reprocess and reconciliation are referenced; detailed deletion and recovery behavior is deferred. |
+| FR-023 | The system MUST support generation of embeddings for canonical document chunks. | MUST | Test | 8; 9 | Embedding Service | OPEN-005 | Partial | Embedding generation is part of the logical flow; model selection and evaluation remain open. |
+| FR-024 | The system MUST maintain vector retrieval representations in Qdrant. | MUST | Inspection / Test | 9; 7 | Qdrant; OpenSearch; Hybrid Retrieval; RRF Fusion | ADR-004 | Covered | Separate vector and lexical paths and RRF are explicitly described. |
+| FR-025 | The system MUST maintain lexical retrieval representations in OpenSearch. | MUST | Inspection / Test | 9; 7 | Qdrant; OpenSearch; Hybrid Retrieval; RRF Fusion | ADR-004 | Covered | Separate vector and lexical paths and RRF are explicitly described. |
+| FR-026 | The system MUST support independent vector and lexical retrieval paths. | MUST | Test | 9; 7 | Qdrant; OpenSearch; Hybrid Retrieval; RRF Fusion | ADR-004 | Covered | Separate vector and lexical paths and RRF are explicitly described. |
+| FR-027 | The system MUST support application-level fusion of retrieval results. | MUST | Test | 9; 7 | Qdrant; OpenSearch; Hybrid Retrieval; RRF Fusion | ADR-004 | Covered | Separate vector and lexical paths and RRF are explicitly described. |
+| FR-028 | The initial hybrid retrieval implementation MUST support Reciprocal Rank Fusion (RRF). | MUST | Test | 9; 7 | Qdrant; OpenSearch; Hybrid Retrieval; RRF Fusion | ADR-004 | Covered | Separate vector and lexical paths and RRF are explicitly described. |
+| FR-029 | The system MUST provide a means of validating index completeness and consistency against authoritative document and chunk data. | MUST | Test | 9; 12 | Index Validation; Index Activation Controller | OPEN-011 | Partial | Readiness and validation are stated; validation criteria and evidence are not detailed. |
+| FR-030 | Search indexes MUST be rebuildable from authoritative source data and required processing artifacts. | MUST | Demonstration / Test | 7; 9; 16 | Canonical Artifact Manager; Index Rebuild | ADR-001; ADR-002; ADR-003; ADR-004 | Covered | Derived indexes are explicitly rebuildable from authoritative data and artifacts. |
+| FR-031 | The system MUST support retrieval of relevant document chunks through hybrid search. | MUST | Test | 9; 10; 11 | Query Processing; Hybrid Retrieval; Authorization; RAG Orchestrator; LLM Runtime | ADR-004; OPEN-003; OPEN-005 | Covered | Hybrid retrieval, authorized context construction and local LLM integration are described. |
+| FR-032 | The system MUST enforce authorization before canonical content is retrieved for context assembly. | MUST | Security Test | 9; 10; 11 | Query Processing; Hybrid Retrieval; Authorization; RAG Orchestrator; LLM Runtime | ADR-004; OPEN-003; OPEN-005 | Covered | Hybrid retrieval, authorized context construction and local LLM integration are described. |
+| FR-033 | The system MUST retrieve canonical content from MinIO rather than treating search indexes as authoritative content stores. | MUST | Inspection / Test | 9; 10; 11 | Query Processing; Hybrid Retrieval; Authorization; RAG Orchestrator; LLM Runtime | ADR-004; OPEN-003; OPEN-005 | Covered | Hybrid retrieval, authorized context construction and local LLM integration are described. |
+| FR-034 | The system MUST support integration with a locally hosted LLM inference service. | MUST | Integration Test | 9; 10; 11 | Query Processing; Hybrid Retrieval; Authorization; RAG Orchestrator; LLM Runtime | ADR-004; OPEN-003; OPEN-005 | Covered | Hybrid retrieval, authorized context construction and local LLM integration are described. |
+| FR-035 | The system MUST provide the authorized retrieval context to the LLM integration layer. | MUST | Test | 9; 10; 11 | Query Processing; Hybrid Retrieval; Authorization; RAG Orchestrator; LLM Runtime | ADR-004; OPEN-003; OPEN-005 | Covered | Hybrid retrieval, authorized context construction and local LLM integration are described. |
+| FR-036 | The system MUST support traceability between a generated response and the document context used to produce it, to the extent supported by the application workflow. | SHOULD | Test | 10 | RAG Orchestrator; Response Validation; Evidence Traceability | OPEN-005; OPEN-006 | Partial | Response/context traceability and insufficient-context handling are only high-level. |
+| FR-037 | The system SHOULD provide configurable mechanisms for response validation and handling of insufficient retrieval context. | SHOULD | Test | 10 | RAG Orchestrator; Response Validation; Evidence Traceability | OPEN-005; OPEN-006 | Partial | Response/context traceability and insufficient-context handling are only high-level. |
+| FR-038 | The application layer MUST coordinate document ingestion, processing, metadata management, indexing, and lifecycle transitions. | MUST | Inspection / Test | 5; 6; 11; 13 | Application Orchestration; Authorization Enforcement | OPEN-003; OPEN-006 | Covered | Application coordination and authorization responsibilities are stated. |
+| FR-039 | The application layer MUST enforce authorization policies across relevant workflows. | MUST | Security Test | 5; 6; 11; 13 | Application Orchestration; Authorization Enforcement | OPEN-003; OPEN-006 | Covered | Application coordination and authorization responsibilities are stated. |
+| FR-040 | The application layer MUST handle failures and incomplete operations without silently treating them as successful. | MUST | Test | 6; 12; 15 | Workflow Coordination; Failure Handling; Reconciliation | OPEN-006; OPEN-011 | Partial | Failure and reconciliation principles exist; detailed operational behavior is deferred. |
+| FR-041 | The application layer MUST support the reconciliation of operational state with persisted content and derived indexes. | MUST | Test | 6; 12; 15 | Workflow Coordination; Failure Handling; Reconciliation | OPEN-006; OPEN-011 | Partial | Failure and reconciliation principles exist; detailed operational behavior is deferred. |
+| FR-042 | Application responsibilities MUST be separated into maintainable modules with explicit responsibility boundaries. | MUST | Architecture Review | 5; 6 | Application Modules; Responsibility Boundaries | OPEN-006 | Partial | Modular responsibilities are stated, but final module boundaries/deployable units are not finalized. |
+| DR-001 | Original document binaries MUST be stored in MinIO. | MUST | Inspection / Test | 7 | MinIO; Raw Zone; Processed Zone | ADR-001; ADR-002 | Covered | Originals and canonical processing artifacts are assigned to MinIO. |
+| DR-002 | Canonical chunks and authoritative content-processing artifacts MUST be stored in the Processed Zone of MinIO. | MUST | Inspection / Test | 7 | MinIO; Raw Zone; Processed Zone | ADR-001; ADR-002 | Covered | Originals and canonical processing artifacts are assigned to MinIO. |
+| DR-003 | Document metadata, ACL information, lifecycle state, operational state, and lineage MUST be maintained authoritatively in PostgreSQL. | MUST | Inspection / Test | 7 | PostgreSQL Metadata & Control Store | ADR-003 | Covered | Authoritative metadata, ACL, lifecycle, operational state and lineage are assigned to PostgreSQL. |
+| DR-004 | Qdrant and OpenSearch MUST store derived retrieval representations rather than authoritative document content. | MUST | Inspection / Test | 7; 9 | Qdrant; OpenSearch; Derived Indexes | ADR-004 | Covered | Search engines are explicitly derived representations, not canonical content stores. |
+| DR-005 | Every canonical chunk MUST be traceable to its originating document and version. | MUST | Test | 7; 8 | Canonical Chunk; Data Ownership; Source of Truth | ADR-001; ADR-002; ADR-003; ADR-004 | Covered | Chunk lineage and explicit ownership boundaries are described. |
+| DR-006 | Data ownership and Source of Truth boundaries MUST remain explicit across all storage components. | MUST | Architecture Review | 7; 8 | Canonical Chunk; Data Ownership; Source of Truth | ADR-001; ADR-002; ADR-003; ADR-004 | Covered | Chunk lineage and explicit ownership boundaries are described. |
+| DR-007 | Derived indexes MUST be reproducible from authoritative data and required processing artifacts. | MUST | Demonstration / Test | 7; 12; 16 | Index Rebuild; Versioning; Lineage | ADR-001; ADR-002; ADR-003; ADR-004 | Partial | Rebuildability and lineage are described, but investigation/evidence workflows need detail. |
+| DR-008 | Data versioning and lineage information MUST support investigation of processing and retrieval results. | MUST | Test | 7; 12; 16 | Index Rebuild; Versioning; Lineage | ADR-001; ADR-002; ADR-003; ADR-004 | Partial | Rebuildability and lineage are described, but investigation/evidence workflows need detail. |
+| DR-009 | Data deletion workflows MUST address relevant authoritative content, metadata, and derived representations according to the approved deletion policy. | MUST | Test | 12; 16 | Deletion; Derived Index Cleanup | OPEN-004; OPEN-011 | Partial | Deletion is mentioned, but approved deletion policy and index cleanup semantics are not specified. |
+| DR-010 | Data persistence and backup procedures MUST preserve the consistency and recoverability of required data domains. | MUST | Recovery Test | 16 | Backup; Recovery; Data Consistency | OPEN-004 | Partial | Recoverability principle exists; backup and recovery procedures remain open. |
+| SEC-001 | The system MUST authenticate users and services before granting access to protected capabilities. | MUST | Security Test | 2; 11 | Identity / Authentication | OPEN-003 | Partial | Authentication is assumed, but identity mechanism is not selected. |
+| SEC-002 | The system MUST enforce document-level authorization. | MUST | Security Test | 9; 11 | Document-level Authorization; Secure Retrieval | OPEN-003 | Covered | Authorization-aware retrieval and document-level enforcement are explicit. |
+| SEC-003 | Retrieval operations MUST be authorization-aware. | MUST | Security Test | 9; 11 | Document-level Authorization; Secure Retrieval | OPEN-003 | Covered | Authorization-aware retrieval and document-level enforcement are explicit. |
+| SEC-004 | Qdrant and OpenSearch MUST apply ACL-based filtering within their supported capabilities. | MUST | Security Test | 9; 11 | ACL Pre-filter in Qdrant and OpenSearch | ADR-004; OPEN-003 | Covered | Index-side ACL filtering is explicit. |
+| SEC-005 | The system MUST revalidate authorization against the authoritative PostgreSQL data before canonical content retrieval. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
+| SEC-006 | Authorization MUST be enforced before retrieved content is included in LLM context. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
+| SEC-007 | The system MUST fail closed when authorization cannot be established or revalidated. | MUST | Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
+| SEC-008 | Search-engine filtering MUST NOT be treated as a substitute for authoritative authorization validation. | MUST | Architecture Review / Security Test | 9; 11 | PostgreSQL Authoritative Revalidation; Fail-Closed | ADR-003; OPEN-003 | Covered | Authoritative revalidation before fetch/context and fail-closed are explicit. |
+| SEC-009 | Object-storage access controls MUST NOT replace application-level document authorization. | MUST | Security Test | 7; 11 | Object Storage Access Boundary; Application Authorization | ADR-002; OPEN-003 | Covered | Object-store controls are not treated as replacement for application authorization. |
+| SEC-010 | Security-relevant operations and authorization outcomes MUST be auditable. | MUST | Inspection / Test | 11; 15 | Audit Events; Authorization Outcomes | — | Partial | Auditability is required at high level; event catalogue and retention are not defined. |
+| SEC-011 | The system MUST protect sensitive configuration and service credentials against unauthorized access. | MUST | Security Test | 14; 15 | Secrets; Configuration Protection | — | Partial | Protection is a requirement but concrete secrets/configuration controls are deferred. |
+| SEC-012 | Network communication between system components MUST follow the approved network segmentation and access-control design. | MUST | Inspection / Security Test | 11; 14 | Network Segmentation; Component Communication | ADR-005 | Partial | Controlled communications are referenced; detailed segmentation and rules are not provided. |
+| SEC-013 | Administrative and service-level privileges SHOULD follow the principle of least privilege. | SHOULD | Security Review | 11; 15 | Least Privilege | OPEN-003 | Partial | Principle is compatible with HLA security model but detailed role/privilege model is open. |
+| SEC-014 | Security-relevant failures MUST be observable and available for operational investigation. | MUST | Test | 11; 15 | Security Failure Observability | — | Partial | Security failures and observability are discussed but operational event details are not specified. |
+| NFR-001 | The system MUST be evaluated against representative document ingestion, processing, indexing, and retrieval workloads before production acceptance. | MUST | Benchmark | 14; 15 | Workload Benchmark; Performance Validation | OPEN-010 | TBD | HLA defers workload targets and benchmark criteria; no targets or benchmark evidence are present. |
+| NFR-002 | Retrieval latency targets MUST be defined and validated using representative workloads. | MUST | Benchmark | 14; 15 | Workload Benchmark; Performance Validation | OPEN-010 | TBD | HLA defers workload targets and benchmark criteria; no targets or benchmark evidence are present. |
+| NFR-003 | Document processing throughput targets MUST be established before production acceptance. | MUST | Benchmark | 14; 15 | Workload Benchmark; Performance Validation | OPEN-010 | TBD | HLA defers workload targets and benchmark criteria; no targets or benchmark evidence are present. |
+| NFR-004 | Hardware capacity MUST be evaluated against expected document volume, concurrency, model requirements, and storage growth. | MUST | Analysis / Benchmark | 14; 15 | Capacity Planning; Resource Evaluation | OPEN-010; OPEN-005 | Partial | Capacity and combined resource impact are acknowledged; sizing and benchmark remain open. |
+| NFR-005 | Performance evaluation MUST include the combined resource impact of MinIO, PostgreSQL, Qdrant, OpenSearch, application services, and local inference. | MUST | Benchmark | 14; 15 | Capacity Planning; Resource Evaluation | OPEN-010; OPEN-005 | Partial | Capacity and combined resource impact are acknowledged; sizing and benchmark remain open. |
+| NFR-006 | The initial production baseline MUST be designed for CPU-only inference. | MUST | Inspection / Benchmark | 14 | CPU-only Deployment | ADR-006 | Covered | CPU-only initial production baseline is explicit. |
+| NFR-007 | The system MUST preserve the integrity of original documents and canonical content artifacts throughout processing. | MUST | Test | 7; 8 | Canonical Data Integrity | ADR-001; ADR-002 | Covered | Canonical content ownership and preservation are explicit at HLA level. |
+| NFR-008 | Incomplete processing or indexing operations MUST NOT result in an invalid document version being activated. | MUST | Test | 8; 12 | Lifecycle Validation; Controlled Activation | OPEN-011 | Covered | Unvalidated versions cannot become active; paired readiness is described. |
+| NFR-009 | The system MUST support detection and recovery of incomplete or inconsistent operations. | MUST | Test | 12; 15; 16 | Failure Detection; Recovery; Reconciliation | OPEN-004; OPEN-011 | Partial | Detection/recovery are acknowledged but detailed recovery paths are open. |
+| NFR-010 | The system MUST maintain a consistent relationship between authoritative document versions and their active retrieval representations. | MUST | Integration Test | 7; 9; 12 | Document Version / Active Index Consistency | OPEN-011 | Partial | Consistency and paired index activation are described, but shared generation semantics require further specification. |
+| NFR-011 | The system MUST define and validate recovery procedures for critical components before production acceptance. | MUST | Recovery Test | 16 | Backup; Restore; Recovery Scope | OPEN-004 | Partial | Recovery domains are identified; procedures and validation remain open. |
+| NFR-012 | The system MUST have documented backup and recovery procedures covering required data domains. | MUST | Inspection / Recovery Test | 16 | Backup; Restore; Recovery Scope | OPEN-004 | Partial | Recovery domains are identified; procedures and validation remain open. |
+| NFR-013 | Recovery procedures MUST address MinIO, PostgreSQL, Qdrant, OpenSearch, application configuration, and required model artifacts as applicable. | MUST | Recovery Test | 16 | Backup; Restore; Recovery Scope | OPEN-004 | Partial | Recovery domains are identified; procedures and validation remain open. |
+| NFR-014 | RPO and RTO objectives MUST be defined according to business and operational requirements before production acceptance. | MUST | Analysis / Recovery Test | 16 | RPO / RTO | OPEN-004 | TBD | HLA explicitly leaves RPO/RTO unresolved. |
+| NFR-015 | The recovery process MUST include validation of restored data and retrieval consistency. | MUST | Recovery Test | 16 | Restore Validation; Retrieval Consistency | OPEN-004 | Partial | Validation is required conceptually; procedure and acceptance criteria are not defined. |
+| NFR-016 | The application architecture MUST maintain explicit separation of responsibilities. | MUST | Architecture Review | 5; 6 | Separation of Responsibilities | OPEN-006 | Covered | Logical component responsibilities and boundaries are stated. |
+| NFR-017 | Architectural components MUST expose documented integration boundaries. | MUST | Inspection | 5; 6; 13 | Integration Boundaries | OPEN-006 | Partial | Logical interactions exist; final interface contracts are deferred. |
+| NFR-018 | Derived search indexes MUST be replaceable or rebuildable without losing authoritative document content. | MUST | Demonstration / Test | 7; 9; 16 | Rebuildable Derived Indexes | ADR-001; ADR-002; ADR-003; ADR-004 | Covered | Rebuildability without loss of authoritative content is explicit. |
+| NFR-019 | Configuration MUST be managed in a controlled and documented manner. | MUST | Inspection | 14; 15 | Configuration Management | — | Partial | Controlled configuration is required but management mechanism is not specified. |
+| NFR-020 | Detailed implementation choices MUST remain consistent with accepted architectural decisions and documented constraints. | MUST | Architecture Review | 5; 17 | Architecture Decision Consistency | ADR-001; ADR-002; ADR-003; ADR-004; ADR-005; ADR-006 | Covered | HLA states accepted baseline and decision governance. |
+| NFR-021 | The system MUST provide operational logging for critical workflows. | MUST | Test | 15 | Logging; Metrics; Tracing; Audit; Monitoring | — | Partial | Operational visibility is described, but telemetry catalogue, thresholds and retention are deferred. |
+| NFR-022 | The system MUST expose relevant operational metrics for infrastructure and application components. | MUST | Demonstration | 15 | Logging; Metrics; Tracing; Audit; Monitoring | — | Partial | Operational visibility is described, but telemetry catalogue, thresholds and retention are deferred. |
+| NFR-023 | The system MUST support tracing or correlation of related operations across processing and retrieval workflows. | MUST | Test | 15 | Logging; Metrics; Tracing; Audit; Monitoring | — | Partial | Operational visibility is described, but telemetry catalogue, thresholds and retention are deferred. |
+| NFR-024 | Security and lifecycle events MUST be recorded in an auditable manner. | MUST | Inspection / Test | 15 | Logging; Metrics; Tracing; Audit; Monitoring | — | Partial | Operational visibility is described, but telemetry catalogue, thresholds and retention are deferred. |
+| NFR-025 | Operational failures MUST be identifiable through monitoring and logs. | MUST | Test | 15 | Logging; Metrics; Tracing; Audit; Monitoring | — | Partial | Operational visibility is described, but telemetry catalogue, thresholds and retention are deferred. |
+| OPS-001 | Core system capabilities MUST operate without mandatory dependency on external cloud services. | MUST | Offline Test | 2; 14 | Offline Runtime | ADR-005 | Covered | No public-cloud runtime dependency is explicit. |
+| OPS-002 | The initial deployment MUST support a single-node topology. | MUST | Deployment Test | 14 | Single-Node; Docker Compose | ADR-005 | Covered | Initial topology and orchestration are explicit. |
+| OPS-003 | Docker Compose MUST be supported as the initial container orchestration approach. | MUST | Deployment Test | 14 | Single-Node; Docker Compose | ADR-005 | Covered | Initial topology and orchestration are explicit. |
+| OPS-004 | Required application and infrastructure components MUST be deployable within the approved offline environment. | MUST | Offline Deployment Test | 14; 15 | Offline Deployment; Artifact Supply Chain | ADR-005; OPEN-010 | Partial | Offline artifact lifecycle is recognized; concrete import/provenance procedures are not detailed. |
+| OPS-005 | Required software images, packages, models, and other deployment artifacts MUST be obtainable and maintainable for offline installation. | MUST | Demonstration | 14; 15 | Offline Deployment; Artifact Supply Chain | ADR-005; OPEN-010 | Partial | Offline artifact lifecycle is recognized; concrete import/provenance procedures are not detailed. |
+| OPS-006 | Deployment documentation MUST describe component configuration, dependencies, startup, shutdown, and recovery procedures. | MUST | Inspection | 14; 15; 16 | Deployment Documentation; Recovery Procedures | OPEN-004 | Partial | Required documentation domains are identified but no runbooks are provided. |
+| OPS-007 | The system MUST support controlled network communication between components according to the approved network segmentation design. | MUST | Security Test | 11; 14 | Network Segmentation; Controlled Communication | ADR-005 | Partial | Controlled communication is required; detailed network design is deferred. |
+| OPS-008 | The deployment process MUST provide a means to validate the operational status of required components after installation or recovery. | MUST | Test | 14; 15 | Health; Readiness; Recovery Validation | OPEN-004 | Partial | Health/readiness concepts are present; operational validation procedure is not defined. |
+| CON-001 | The initial physical architecture is single-node. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-002 | Docker Compose is the initial orchestration approach. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-003 | MinIO is the foundational object storage and content Data Lake platform. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-004 | PostgreSQL is the authoritative operational metadata store. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-005 | Qdrant is the vector retrieval engine. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-006 | OpenSearch is the lexical and BM25 retrieval engine. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-007 | Hybrid retrieval uses separate vector and lexical retrieval paths with application-level fusion. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-008 | RRF is the initial result-fusion method. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-009 | Original documents and canonical chunks are persisted in MinIO. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-010 | Document metadata, ACL, lifecycle, operational state, and lineage are authoritative in PostgreSQL. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-011 | Search indexes are derived and rebuildable representations. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-012 | The initial production inference baseline is CPU-only. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-013 | Core capabilities follow an offline-first design. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-014 | Baseline document-level authorization is mandatory from the initial implementation. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+| CON-015 | Search-engine ACL filtering does not replace authoritative authorization revalidation. | Constraint | Architecture inspection / relevant test | TBD | TBD | — | TBD | No confident mapping established in this practical pass. |
+
+## 5. Coverage snapshot
+
+| Coverage status | Count |
+|---|---:|
+| Covered | 48 |
+| Partial | 46 |
+| TBD | 20 |
+| Not Covered | 0 |
+| **Total** | **114** |
+
+These counts are an initial qualitative assessment, not a compliance score. In particular, `Covered` does not mean that the requirement has been verified.
+
+## 6. Known issues and limitations
+
+1. **Provisional chapter mapping:** the HLA review package itself states that its earlier chapter-level requirement mapping was thematic and provisional. The mappings in this RTM are an improved first pass, but have not undergone paragraph-level evidence review.
+2. **INT category:** the taxonomy includes INT, but there are no INT requirement IDs in the source.
+3. **FR-036 normative wording:** the requirement sentence uses “MUST” while its Priority column is “SHOULD”. This RTM preserves the source Priority as SHOULD and does not resolve the discrepancy.
+4. **OPEN identifier collisions:** legacy architecture documents and the Scope & Decision Register use overlapping OPEN identifiers for different topics. References in this RTM follow the Scope & Decision Register/HLA mapping where possible; do not treat cross-document OPEN references as reconciled until the register is normalized.
+5. **Verification evidence:** source verification methods are copied, but test cases, evidence links, owners, and acceptance results are intentionally outside this practical version.
+6. **Constraint rows:** CON requirements are constraints in the source and do not have the same Priority/Verification columns as FR/DR/SEC/NFR/OPS. They are marked “Constraint” and mapped to the applicable HLA view.
+7. **No implementation inference:** this matrix assesses only the current HLA text. It does not assert that a component exists or works.
+
+## 7. Recommended use in the next phase
+
+Use this RTM to prioritize Architecture Gap Analysis, identify HLA chapters needing revision, and keep unresolved decisions visible. Revisit mappings and statuses during HLA revision; do not delay the next phase to add paragraph-level citations or test evidence to all 114 rows.
+
+## 8. Revision plan
+
+- **v0.1:** practical baseline for Architecture Gap Analysis.
+- **v0.2:** revise mappings and coverage after HLA gap remediation and OPEN/ADR reconciliation.
+- **v1.0:** add detailed evidence references, verification ownership, acceptance criteria, and implementation/test traceability when the project reaches that stage.
+
+---
