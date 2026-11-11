@@ -1,6 +1,6 @@
 # ARC-RTM-001 — Requirement Traceability Matrix
 
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** Draft — Practical Baseline (Provisional)  
 **Date:** 2026-11-11  
 **Source requirements:** `Architecture Requirements & Constraints.md` v0.1  
@@ -110,11 +110,11 @@ The HLA chapter numbers refer to the 17-chapter English draft in ARC-HLA-001. Co
 | SEC-012 | Network communication between system components MUST follow the approved network segmentation and access-control design. | MUST | Inspection / Security Test | 11; 14 | Network Segmentation; Component Communication | ADR-005 | Partial | Controlled communications are referenced; detailed segmentation and rules are not provided. |
 | SEC-013 | Administrative and service-level privileges SHOULD follow the principle of least privilege. | SHOULD | Security Review | 11; 15 | Least Privilege | OPEN-003 | Partial | Principle is compatible with HLA security model but detailed role/privilege model is open. |
 | SEC-014 | Security-relevant failures MUST be observable and available for operational investigation. | MUST | Test | 11; 15 | Security Failure Observability | — | Partial | Security failures and observability are discussed but operational event details are not specified. |
-| NFR-001 | The system MUST be evaluated against representative document ingestion, processing, indexing, and retrieval workloads before production acceptance. | MUST | Benchmark | 14; 15 | Workload Benchmark; Performance Validation | OPEN-010 | TBD | HLA defers workload targets and benchmark criteria; no targets or benchmark evidence are present. |
+| NFR-001 | The system MUST be evaluated against representative document ingestion, processing, indexing, and retrieval workloads before production acceptance. | MUST | Benchmark | 14; 15 | Workload Benchmark; Performance Validation | OPEN-010 | Partial | HLA now requires a representative workload profile and combined single-host benchmark before production acceptance; workload values and benchmark evidence remain open. |
 | NFR-002 | Retrieval latency targets MUST be defined and validated using representative workloads. | MUST | Benchmark | 14; 15 | Workload Benchmark; Performance Validation | OPEN-010 | TBD | HLA defers workload targets and benchmark criteria; no targets or benchmark evidence are present. |
 | NFR-003 | Document processing throughput targets MUST be established before production acceptance. | MUST | Benchmark | 14; 15 | Workload Benchmark; Performance Validation | OPEN-010 | TBD | HLA defers workload targets and benchmark criteria; no targets or benchmark evidence are present. |
-| NFR-004 | Hardware capacity MUST be evaluated against expected document volume, concurrency, model requirements, and storage growth. | MUST | Analysis / Benchmark | 14; 15 | Capacity Planning; Resource Evaluation | OPEN-010; OPEN-005 | Partial | Capacity and combined resource impact are acknowledged; sizing and benchmark remain open. |
-| NFR-005 | Performance evaluation MUST include the combined resource impact of MinIO, PostgreSQL, Qdrant, OpenSearch, application services, and local inference. | MUST | Benchmark | 14; 15 | Capacity Planning; Resource Evaluation | OPEN-010; OPEN-005 | Partial | Capacity and combined resource impact are acknowledged; sizing and benchmark remain open. |
+| NFR-004 | Hardware capacity MUST be evaluated against expected document volume, concurrency, model requirements, and storage growth. | MUST | Analysis / Benchmark | 14; 15 | Capacity Planning; Resource Evaluation | OPEN-010; OPEN-005 | Partial | HLA identifies workload dimensions and same-host resource evaluation; numerical sizing and benchmark evidence remain open. |
+| NFR-005 | Performance evaluation MUST include the combined resource impact of MinIO, PostgreSQL, Qdrant, OpenSearch, application services, and local inference. | MUST | Benchmark | 14; 15 | Capacity Planning; Resource Evaluation | OPEN-010; OPEN-005 | Partial | HLA explicitly requires combined same-host benchmarking across the named components; measured results and acceptance thresholds remain open. |
 | NFR-006 | The initial production baseline MUST be designed for CPU-only inference. | MUST | Inspection / Benchmark | 14 | CPU-only Deployment | ADR-006 | Covered | CPU-only initial production baseline is explicit. |
 | NFR-007 | The system MUST preserve the integrity of original documents and canonical content artifacts throughout processing. | MUST | Test | 7; 8 | Canonical Data Integrity | ADR-001; ADR-002 | Covered | Canonical content ownership and preservation are explicit at HLA level. |
 | NFR-008 | Incomplete processing or indexing operations MUST NOT result in an invalid document version being activated. | MUST | Test | 8; 12 | Lifecycle Validation; Controlled Activation | OPEN-011 | Covered | Unvalidated versions cannot become active; paired readiness is described. |
@@ -164,8 +164,8 @@ The HLA chapter numbers refer to the 17-chapter English draft in ARC-HLA-001. Co
 | Coverage status | Count |
 |---|---:|
 | Covered | 48 |
-| Partial | 46 |
-| TBD | 20 |
+| Partial | 47 |
+| TBD | 19 |
 | Not Covered | 0 |
 | **Total** | **114** |
 
@@ -187,8 +187,9 @@ Use this RTM to prioritize Architecture Gap Analysis, identify HLA chapters need
 
 ## 8. Revision plan
 
-- **v0.1:** practical baseline for Architecture Gap Analysis.
-- **v0.2:** revise mappings and coverage after HLA gap remediation and OPEN/ADR reconciliation.
+- **v0.1:** initial practical baseline for Architecture Gap Analysis.
+- **v0.2 (current):** first HLA/RTM refinement after GAP-001; only evidence-supported coverage changes are made.
+- **Next revision:** continue coverage and mapping updates as subsequent GAPs are addressed, while preserving unresolved and deferred items.
 - **v1.0:** add detailed evidence references, verification ownership, acceptance criteria, and implementation/test traceability when the project reaches that stage.
 
 ---
