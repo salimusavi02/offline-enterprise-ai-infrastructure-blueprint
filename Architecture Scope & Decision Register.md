@@ -1,7 +1,7 @@
 # Architecture Scope & Decision Register
 
 **Document:** Architecture Scope & Decision Register  
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** Draft — Pending Review  
 **Date:** 2026-11-10  
 **Project:** Offline Enterprise AI Infrastructure — Document Intelligence & RAG Ecosystem
@@ -180,6 +180,41 @@ The initial production baseline is designed around CPU-only execution.
 
 GPU-based production inference is not a baseline requirement and may be evaluated as a future architectural extension.
 
+
+### ADR-007 — Baseline Document-Level Authorization
+
+**Status:** Accepted — Initial Production Authorization Baseline
+
+The initial production baseline uses document-level authorization. An organization-approved on-premises identity provider is required, while the specific product and integration configuration remain subject to Detailed Security Design.
+
+- A user principal is identified by the stable pair `issuer + subject`; email addresses and usernames are not stable authorization identifiers.
+- Service principals are distinct from human-user principals. Group identifiers are stable identifiers supplied by the trusted identity source.
+- Application roles are limited to operational/administrative capabilities; a complex enterprise RBAC hierarchy is not part of this baseline.
+- PostgreSQL is the authoritative store for document-level ACL. The baseline permission is `READ`; access is default-deny and requires an explicit grant. ACL inheritance is not assumed.
+- Qdrant and OpenSearch apply ACL pre-filters. After retrieval/fusion and before canonical content is fetched from MinIO or added to LLM context, PostgreSQL revalidates the document state, active version, and current ACL.
+- Invalid or expired identity context, unavailable PostgreSQL, an unavailable retrieval engine, or an unapplyable ACL pre-filter must fail closed. No canonical content may be fetched or added to context when authorization cannot be established.
+- A direct ACL revocation in PostgreSQL takes effect at the authoritative revalidation point even while derived indexes contain stale ACL data. ACL synchronization to both indexes is tracked; synchronization is complete only when both are updated. Delayed grants may cause temporary false negatives, but must not cause disclosure.
+- Group-membership changes are reflected when a fresh, valid identity context is obtained. The maximum identity-context age and refresh/revocation mechanism must be specified in Detailed Security Design; immediate revocation of stale group claims is not assumed.
+
+Advanced RBAC, nested group hierarchies, ACL inheritance, and selection of a specific identity-provider product remain outside this baseline and are tracked under OPEN-003.
+
+### ADR-008 — Coordinated Index Generation Activation & Rollback
+
+**Status:** Accepted — Initial Production Indexing Baseline
+
+Qdrant and OpenSearch are activated as one logically paired index generation. PostgreSQL is the sole authority for the active generation pointer.
+
+- A shared `generation_id` identifies a compatible pair of Qdrant and OpenSearch index artifacts and their relevant configuration. It is distinct from a document version.
+- The generation manifest records, at minimum: generation ID; target physical index identifiers in both engines; embedding model version and vector dimensions; search-analyzer version; normalization and chunking contract versions; ACL schema version; expected document/chunk snapshot; validation result; and build timestamp.
+- Generation states are `BUILDING → VALIDATING → READY → ACTIVE → RETIRED`; a failed build or validation enters `FAILED`. The prior valid generation is retained for rollback.
+- Activation requires both indexes to be ready with the same generation ID, expected document/chunk coverage and document-version relationships to be validated, vector dimensions and ACL metadata to be consistent, and retrieval smoke tests to pass.
+- After validation, PostgreSQL records READY and changes `active_generation_id` in a PostgreSQL transaction. This makes the pointer update atomic only within PostgreSQL; no distributed transaction across PostgreSQL, Qdrant, and OpenSearch is assumed.
+- Each hybrid query reads the active generation pointer from PostgreSQL and queries both engines against that same generation. RRF is permitted only after generation consistency is confirmed. If either engine is unavailable, the generation IDs differ, or an ACL pre-filter cannot be applied, the entire hybrid request fails with a controlled error; partial hybrid results and silent fallback are prohibited.
+- A build or validation failure leaves the previous active generation unchanged. After pointer activation, PostgreSQL remains authoritative. Rollback is an explicit pointer change to a previously READY and valid generation.
+- A replacement document version is not made active until the corresponding index artifacts/records in both engines are ready and validated. An indexing failure must not displace the previously active document version.
+
+Detailed API/schema design, retry and reconciliation mechanics, retention policy, and in-flight query draining are assigned to Detailed Architecture. This ADR defines the architectural control contract, not runtime verification evidence.
+
 ### ADR-SSOT-001 — Repository Documentation Governance
 
 **Status:** Accepted — Governance Decision
@@ -198,7 +233,7 @@ The following decisions remain unresolved and must be addressed before the relev
 |---|---|---|---|---|
 | OPEN-001 | Entity-Centric Documents | Determine whether entity-centric document generation is required and whether it belongs in a future extension | Architecture Owner / Product Owner | Future evaluation |
 | OPEN-002 | Lakehouse Catalog | Determine whether a catalog such as Hive Metastore is required if Iceberg or a Lakehouse architecture is adopted | Data Engineering Owner | Spike / PoC |
-| OPEN-003 | Advanced Authorization Model | Define the detailed ACL model, role hierarchy, group membership, and future identity integration | Security Owner | Detailed Design |
+| OPEN-003 | Advanced Authorization Extensions | Define advanced RBAC, nested group hierarchy, ACL inheritance, identity-provider product selection, and identity-context freshness/revocation details beyond ADR-007 | Security Owner | Detailed Security Design |
 | OPEN-004 | Backup and Recovery | Define backup architecture, retention, recovery procedures, and RPO/RTO objectives | Infrastructure/Ops Owner | HLA completion / Detailed Design |
 | OPEN-005 | Embedding and LLM Selection | Select appropriate local embedding and LLM models through evaluation and benchmarking | NLP/ML Owner | Technical Evaluation |
 | OPEN-006 | Application Layer Responsibilities | Finalize responsibility boundaries across the seven application layers and the foundational Data Lake layer | Architecture Owner | HLA completion |
@@ -206,11 +241,16 @@ The following decisions remain unresolved and must be addressed before the relev
 | OPEN-008 | Persian Search Analyzer | Define and validate the Persian analyzer and lexical-search configuration for OpenSearch | Search/NLP Owner | Spike / PoC |
 | OPEN-009 | Chunking Strategy | Select chunking strategy, tokenizer, chunk size, overlap, and document-specific handling | NLP/ML Owner | Detailed Design / Benchmark |
 | OPEN-010 | Hardware Sizing | Define CPU, RAM, storage, and capacity requirements based on expected workloads | Infrastructure/Ops Owner | HLA validation / PoC |
-| OPEN-011 | Index Activation and Version Transition | Finalize atomicity, validation, rollback, and activation behavior during document version changes and reindexing | Architecture Owner / Data Engineering Owner | Detailed Design |
 
-**Note:** The identifiers OPEN-007 through OPEN-011 are proposed identifiers. Before adoption, they must be reconciled against the repository's existing ADR and open-decision identifiers to prevent duplication or conflicting references.
+**Note:** OPEN-007 through OPEN-010 remain subject to the identifier reconciliation controls already recorded for this repository. OPEN-011 is closed by ADR-008 and is no longer an active open decision.
 
-### 5.1 Decision Management Rules
+### 5.1 Resolved Decision Log
+
+| Former Open ID | Resolution | Status | Boundary |
+|---|---|---|---|
+| OPEN-011 | ADR-008 — Coordinated Index Generation Activation & Rollback | Resolved for Initial Production Architecture Baseline | Detailed API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work. |
+
+### 5.2 Decision Management Rules
 
 - Open decisions must not be presented as accepted architectural commitments.
 - An open decision may be resolved through an ADR, a technical evaluation, a benchmark, or a documented PoC.
