@@ -1,7 +1,7 @@
 # Architecture Scope & Decision Register
 
 **Document:** Architecture Scope & Decision Register  
-**Version:** 0.3  
+**Version:** 0.4  
 **Status:** Draft — Pending Review  
 **Date:** 2026-11-10  
 **Project:** Offline Enterprise AI Infrastructure — Document Intelligence & RAG Ecosystem
@@ -198,22 +198,22 @@ The initial production baseline uses document-level authorization. An organizati
 
 Advanced RBAC, nested group hierarchies, ACL inheritance, and selection of a specific identity-provider product remain outside this baseline and are tracked under OPEN-003.
 
-### ADR-008 — Coordinated Index Generation Activation & Rollback
+### ADR-008 — Coordinated Index Set Activation & Rollback
 
 **Status:** Accepted — Initial Production Indexing Baseline
 
-Qdrant and OpenSearch are activated as one logically paired index generation. PostgreSQL is the sole authority for the active generation pointer.
+Qdrant and OpenSearch form one logically paired retrieval Index Set. PostgreSQL is the authoritative registry for build state, membership, compatibility, and the active retrieval reference. Index membership is incremental at the document-version level; a document update must not require rebuilding the full corpus.
 
-- A shared `generation_id` identifies a compatible pair of Qdrant and OpenSearch index artifacts and their relevant configuration. It is distinct from a document version.
-- The generation manifest records, at minimum: generation ID; target physical index identifiers in both engines; embedding model version and vector dimensions; search-analyzer version; normalization and chunking contract versions; ACL schema version; expected document/chunk snapshot; validation result; and build timestamp.
-- Generation states are `BUILDING → VALIDATING → READY → ACTIVE → RETIRED`; a failed build or validation enters `FAILED`. The prior valid generation is retained for rollback.
-- Activation requires both indexes to be ready with the same generation ID, expected document/chunk coverage and document-version relationships to be validated, vector dimensions and ACL metadata to be consistent, and retrieval smoke tests to pass.
-- After validation, PostgreSQL records READY and changes `active_generation_id` in a PostgreSQL transaction. This makes the pointer update atomic only within PostgreSQL; no distributed transaction across PostgreSQL, Qdrant, and OpenSearch is assumed.
-- Each hybrid query reads the active generation pointer from PostgreSQL and queries both engines against that same generation. RRF is permitted only after generation consistency is confirmed. If either engine is unavailable, the generation IDs differ, or an ACL pre-filter cannot be applied, the entire hybrid request fails with a controlled error; partial hybrid results and silent fallback are prohibited.
-- A build or validation failure leaves the previous active generation unchanged. After pointer activation, PostgreSQL remains authoritative. Rollback is an explicit pointer change to a previously READY and valid generation.
-- A replacement document version is not made active until the corresponding index artifacts/records in both engines are ready and validated. An indexing failure must not displace the previously active document version.
+- Stable identifiers are maintained for `document_id`, `document_version_id`, `chunk_manifest_id`, `index_set_id`, `index_version_id`, `index_member_id`, and `pipeline_run_id`.
+- Each membership binds one document version and its canonical chunk manifest to compatible Qdrant and OpenSearch representations. Both engines must refer to the same document version and chunk manifest.
+- PostgreSQL records membership, build/validation state, compatibility, and the active retrieval reference. Qdrant and OpenSearch remain derived and rebuildable; neither is authoritative for membership or activation.
+- Membership lifecycle is `BUILDING → VALIDATING → READY → ACTIVE → RETIRED`; unsuccessful build or validation enters `FAILED`. Activation is permitted only after both engine representations are complete and validated.
+- The active retrieval reference is changed in a PostgreSQL transaction. Atomicity applies only to that PostgreSQL transaction; no distributed transaction across PostgreSQL, Qdrant, and OpenSearch is assumed.
+- A failed or incomplete new build must leave the previous active membership and retrieval reference usable. Query Planner uses only ACTIVE, compatible memberships and pins the selected active reference for the duration of each query.
+- Adding or updating a document creates or updates only the affected document-version membership. It does not require a full-corpus snapshot or rebuild. Update, reindex, deletion, idempotency, and reconciliation must preserve the distinction between retiring an index membership and deleting the logical document.
+- Retired memberships are excluded from new retrieval and may be physically removed only after they are no longer referenced by in-flight queries and applicable retention rules permit cleanup.
 
-Detailed API/schema design, retry and reconciliation mechanics, retention policy, and in-flight query draining are assigned to Detailed Architecture. This ADR defines the architectural control contract, not runtime verification evidence.
+Detailed API/schema, physical index naming, retry/reconciliation mechanics, retention values, and in-flight query draining are assigned to Detailed Architecture. This ADR defines the architecture-level control contract, not runtime verification evidence.
 
 ### ADR-SSOT-001 — Repository Documentation Governance
 
