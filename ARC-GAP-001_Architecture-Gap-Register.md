@@ -1,9 +1,9 @@
 # ARC-GAP-001 — Architecture Gap Register
 
-**Version:** 0.3  
+**Version:** 0.4  
 **Status:** Draft — In Progress  
 **Date:** 2026-11-11  
-**Inputs:** ARC-RTM-001 v0.3; ARC-HLA-001 review package revision 0.3; Architecture Scope & Decision Register v0.3  
+**Inputs:** ARC-RTM-001 v0.4; ARC-HLA-001 review package revision 0.4; Architecture Scope & Decision Register v0.4  
 **Working branch:** `docs/architecture-baseline-v0.1`
 
 ## 1. Purpose
@@ -32,8 +32,8 @@ This register captures material architecture gaps identified during the practica
 | GAP-003 | Persian lexical analyzer is not selected or benchmarked | FR-025, FR-031 | 9, 17 | OPEN-008 | High | Open | Benchmark candidate OpenSearch analyzers against representative Persian corpus and define analyzer contract. | Resolve before production search acceptance. |
 | GAP-004 | Chunking strategy and parameters are unresolved | FR-009, FR-010, FR-014 | 8, 17 | OPEN-009 | High | Open | Define tokenizer, chunk boundary policy, size and overlap; validate retrieval quality and traceability. | Resolve before production indexing. |
 | GAP-005 | Embedding and local LLM choices are unresolved | FR-023, FR-034, FR-035; NFR-005 | 8, 9, 10, 14 | OPEN-005 | High | Open | Evaluate candidate models under offline and CPU-only constraints; document quality/resource trade-offs. | Before model and production baseline selection. |
-| GAP-006 | Identity and advanced document authorization model is incomplete | SEC-001…SEC-014; FR-032, FR-039 | 2, 9, 11, 15 | OPEN-003 | High | Open | Define identity source, principal/group/role mapping, ACL representation, revocation and failure behavior; retain PostgreSQL as authority. | Resolve before detailed security design and implementation. |
-| GAP-007 | Index generation activation and rollback need a more explicit contract | FR-018…FR-022, FR-029; NFR-008…NFR-010 | 9, 12, 16 | OPEN-011 | High | Open | Specify shared logical Generation ID, paired Qdrant/OpenSearch readiness, PostgreSQL active pointer, partial-failure recovery and rollback. | Resolve before detailed indexing/activation design. |
+| GAP-006 | Identity and advanced document authorization model is incomplete | SEC-001…SEC-014; FR-032, FR-039 | 2, 9, 11, 15 | ADR-007; OPEN-003 | High | Resolved | Baseline document-level authorization, PostgreSQL authority, dual authorization checkpoints, canonical-content protection, and fail-closed behavior are defined by ADR-007. Advanced RBAC, group hierarchy, ACL inheritance, IdP selection, and identity-context freshness/revocation remain under OPEN-003. | Baseline contract closed; residual extensions remain for Detailed Security Design. |
+| GAP-007 | Coordinated Index Set activation and rollback require an explicit contract | FR-018…FR-022, FR-029; NFR-008…NFR-010 | 9, 12, 16 | ADR-008 | High | Resolved | Incremental per-document-version membership, paired Qdrant/OpenSearch validation against the same document version and chunk manifest, PostgreSQL active retrieval reference, query pinning, and preservation of prior active membership are defined by ADR-008. | Baseline contract closed; API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work. |
 | GAP-008 | Backup, restore and recovery targets/procedures are open | DR-010; NFR-011…NFR-015; OPS-006, OPS-008 | 15, 16 | OPEN-004 | High | Open | Define protected data domains, backup method/cadence, restore order, RPO/RTO and recovery validation. | Resolve before production acceptance. |
 | GAP-009 | Operational telemetry and audit details are incomplete | SEC-010, SEC-014; NFR-021…NFR-025 | 11, 15 | — | Medium | Open | Define critical event catalogue, metrics, logs, traces/correlation, retention and alerting responsibilities. | Can be elaborated during Detailed Architecture. |
 | GAP-010 | Application component boundaries and integration contracts are not fully defined | FR-038…FR-042; NFR-016, NFR-017 | 5, 6, 13 | OPEN-006 | Medium | Open | Clarify module responsibilities, ownership, inputs/outputs, synchronous/asynchronous interactions and failure contracts without prematurely splitting deployables. | Resolve during HLA refinement / Detailed Architecture. |
@@ -65,25 +65,24 @@ This register captures material architecture gaps identified during the practica
 - Material gaps and open decisions are visible and assigned a suggested resolution point.
 - HLA revision can proceed without waiting for paragraph-level RTM evidence.
 
-## 7. GAP-006 and GAP-007 closure record — 2026-11-11
+## 7. GAP-006 and GAP-007 closure record — 2026-11-14
 
 ### GAP-006 — Resolved for Initial Production Architecture Baseline
 
 - Accepted decision: ADR-007 — Baseline Document-Level Authorization.
-- Closure evidence: Scope & Decision Register v0.3; HLA review package revision 0.3, English §8.11 and Persian §19.
-- The baseline fixes stable user identity as `issuer + subject`, separates service principals, uses trusted stable group IDs, and limits baseline authorization to document-level `READ` with default-deny and no ACL inheritance.
-- PostgreSQL remains authoritative for ACL. Qdrant and OpenSearch apply ACL pre-filters; PostgreSQL revalidates document state, active version, and ACL before canonical content fetch/context assembly.
-- Invalid/expired identity context, PostgreSQL or retrieval-engine unavailability, and inability to apply ACL pre-filter fail closed. Direct ACL revocation is enforced at authoritative revalidation even if indexes are stale; dual-index ACL sync is tracked.
-- Residual OPEN-003 is limited to advanced RBAC, nested groups, ACL inheritance, IdP product selection, and identity-context freshness/revocation details. These do not block Detailed Architecture entry for the baseline authorization contract.
+- PostgreSQL is authoritative for document-level ACL and lifecycle authorization. Qdrant/OpenSearch ACL pre-filters are defense-in-depth only.
+- The retrieval flow revalidates each fused candidate against current PostgreSQL authorization before canonical MinIO fetch, validates document version/manifest/integrity, and performs a second authorization check before context assembly.
+- Only authorized canonical content may enter reranking, context, or the local LLM. Authorization uncertainty fails closed.
+- OPEN-003 remains for advanced RBAC, nested groups, ACL inheritance, identity-provider selection, and identity-context freshness/revocation details.
 
 ### GAP-007 — Resolved for Initial Production Architecture Baseline
 
-- Accepted decision: ADR-008 — Coordinated Index Generation Activation & Rollback.
-- Closure evidence: Scope & Decision Register v0.3; HLA review package revision 0.3, English §8.12 and Persian §20.
-- PostgreSQL is the sole authority for `active_generation_id`; one shared generation identifies the compatible Qdrant/OpenSearch pair and its manifest/configuration.
-- Activation requires both engines ready and validated on the same generation. Hybrid queries use that generation in both engines and run RRF only after consistency checks. Engine unavailability, mismatch, or inability to apply ACL pre-filter fails the whole hybrid request.
-- Build/validation failure preserves the prior active generation; rollback is an explicit pointer change to a previously READY valid generation. Document version activation waits for both index representations.
-- No distributed transaction is assumed. API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work.
+- Accepted decision: ADR-008 — Coordinated Index Set Activation & Rollback.
+- Index membership is incremental per document version. Paired Qdrant/OpenSearch memberships must reference the same document version and chunk manifest.
+- PostgreSQL is authoritative for membership/build state, compatibility, and the active retrieval reference. Both engine representations must be complete and validated before activation.
+- Membership lifecycle is `BUILDING → VALIDATING → READY → ACTIVE → RETIRED`; failures enter `FAILED`. A failed new build preserves the prior active membership.
+- Query Planner uses only ACTIVE compatible memberships and pins the selected active retrieval reference for each query. No full-corpus rebuild is required for a single document update.
+- No distributed transaction is assumed; the active pointer change is atomic only within PostgreSQL. API/schema, retries/reconciliation, retention, and in-flight query draining remain Detailed Architecture work.
 
 These closures are architecture-contract closures for the Initial Production Baseline. They are not implementation completion, test execution, security certification, production acceptance, or HLA baseline approval.
 
