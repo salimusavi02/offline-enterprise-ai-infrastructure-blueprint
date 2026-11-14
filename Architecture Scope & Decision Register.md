@@ -248,7 +248,7 @@ The following decisions remain unresolved and must be addressed before the relev
 
 | Former Open ID | Resolution | Status | Boundary |
 |---|---|---|---|
-| OPEN-011 | ADR-008 — Coordinated Index Generation Activation & Rollback | Resolved for Initial Production Architecture Baseline | Detailed API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work. |
+| OPEN-011 | ADR-008 — Coordinated Index Set Activation & Rollback | Resolved for Initial Production Architecture Baseline | Detailed API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work. |
 
 ### 5.2 Decision Management Rules
 
