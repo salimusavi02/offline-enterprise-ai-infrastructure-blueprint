@@ -115,32 +115,33 @@ These are not automatically replaced or deleted by this work. In line with the c
 - Changes are limited to the working branch `docs/architecture-baseline-v0.1`; no merge to `main` is performed.
 
 
-## 9. ADR-007 / ADR-008 and GAP-006 / GAP-007 closure — 2026-11-11
+## 9. Architecture Governance Update v0.4 — 2026-11-14
 
-### 9.1 Accepted architecture decisions
+### 9.1 Accepted architecture contracts
 
-| ADR | Decision | Scope | Status |
-|---|---|---|---|
-| ADR-007 | Baseline Document-Level Authorization | Initial Production baseline: stable `issuer + subject` user identity, distinct service principals, trusted group IDs, PostgreSQL-owned document-level READ ACL, default-deny/no inheritance, Qdrant/OpenSearch ACL pre-filter, authoritative pre-fetch/context revalidation, fail-closed behavior, direct ACL revocation enforcement, and tracked synchronization to both indexes. | Accepted by explicit user approval; recorded in English and Persian Scope & Decision Register v0.3 and HLA review package revision 0.3. |
-| ADR-008 | Coordinated Index Generation Activation & Rollback | Shared Qdrant/OpenSearch generation identity and manifest; PostgreSQL active-generation pointer; paired validation/activation; strict same-generation hybrid queries; fail-closed mismatch/engine behavior; explicit rollback; preserve prior active document version. | Accepted by explicit user approval; recorded in English and Persian Scope & Decision Register v0.3 and HLA review package revision 0.3. |
+| ADR | Decision | Baseline contract |
+|---|---|---|
+| ADR-007 | Baseline Document-Level Authorization | PostgreSQL is authoritative for document ACL. Qdrant/OpenSearch ACL pre-filters are defense-in-depth. Authorization is checked after RRF and before canonical MinIO fetch, then rechecked before context assembly. Only authorized canonical content may reach reranking, context, or the local LLM; uncertainty fails closed. |
+| ADR-008 | Coordinated Index Set Activation & Rollback | Incremental membership per document version; paired Qdrant/OpenSearch entries reference the same document version and chunk manifest. PostgreSQL owns membership/build state and the active retrieval reference. Both engines must validate before activation; queries pin compatible ACTIVE membership; failed builds preserve prior active membership. |
 
-### 9.2 Gap disposition and traceability
+### 9.2 Gap and traceability disposition
 
-- GAP-006: **Resolved for Initial Production Architecture Baseline** by ADR-007. OPEN-003 remains for advanced RBAC, nested groups, ACL inheritance, IdP product choice, and identity-context freshness/revocation details. These residuals are not represented as resolved.
-- GAP-007: **Resolved for Initial Production Architecture Baseline** by ADR-008. Detailed API/schema, retry/reconciliation implementation, retention, and in-flight query draining remain Detailed Architecture work.
-- OPEN-011 is removed from the active open-decision list and recorded as resolved by ADR-008.
-- ARC-RTM-001 v0.3 maps the relevant authorization and index-generation requirements to ADR-007/ADR-008. FR-029 and NFR-010 are Covered at architecture-design level; no runtime test evidence is claimed. Coverage snapshot: Covered 50, Partial 45, TBD 19, Not Covered 0 (114 total).
-- ARC-GAP-001 v0.3 records GAP-006 and GAP-007 as Resolved within the stated Initial Production scope. GAP-001 remains Partially Resolved; GAP-002…GAP-005 and GAP-008…GAP-012 retain their prior open status.
+- GAP-006 and GAP-007 are **Resolved for the Initial Production Architecture Baseline** by ADR-007 and ADR-008 respectively. This is architecture-contract closure only.
+- OPEN-003 remains open for advanced RBAC, nested groups, ACL inheritance, identity-provider selection, and identity-context freshness/revocation details.
+- OPEN-011 is no longer an active open decision; its indexing-activation scope is resolved by ADR-008. API/schema, retry/reconciliation implementation, physical index naming, retention values, and in-flight query draining remain Detailed Architecture work.
+- FR-029 and NFR-010 are **Covered** at architecture-design level. FR-021, FR-022, and NFR-009 remain **Partial**. No implementation or runtime verification is claimed.
+- RTM coverage snapshot: **Covered 50, Partial 45, TBD 19, Not Covered 0 (114 total)**.
+- Other open gaps and decisions remain open; this update does not close unrelated items.
 
 ### 9.3 Files updated on the working branch
 
-| File | Revision | Change |
+| File | Revision | Summary |
 |---|---:|---|
-| Architecture Scope & Decision Register.md | 0.3 | Added ADR-007/ADR-008; narrowed OPEN-003 to advanced authorization extensions; closed OPEN-011. |
-| محدوده معماری و دفتر ثبت تصمیمات.md | 0.3 | Persian counterpart updated consistently. |
-| ARC-HLA-001_HLA-v0.1_Review-Package.md | Review package 0.3 | Added authorization and generation contracts to English and Persian HLA chapters 8.11/8.12 and 19/20. |
-| ARC-RTM-001_Requirement-Traceability-Matrix.md | 0.3 | Updated ADR traceability, coverage judgments, notes, and coverage snapshot. |
-| ARC-GAP-001_Architecture-Gap-Register.md | 0.3 | Closed GAP-006/007 at Initial Production baseline scope with explicit residual boundaries. |
-| DOCUMENTATION-PUBLICATION-MANIFEST.md | Section 9 | Recorded approval scope, disposition, and publication controls. |
+| Architecture Scope & Decision Register.md | 0.4 | Replaced ADR-008 with incremental Index Set membership and coordinated activation; retained ADR-007 authorization contract. |
+| محدوده معماری و دفتر ثبت تصمیمات.md | 0.4 | Persian counterpart aligned with the English decision register. |
+| ARC-HLA-001_HLA-v0.1_Review-Package.md | Review package 0.4 | Added two-checkpoint authorization sequence and separate document/membership lifecycle contracts in English and Persian. |
+| ARC-RTM-001_Requirement-Traceability-Matrix.md | 0.4 | Updated ADR traceability and coverage judgments; FR-029 and NFR-010 are Covered; FR-021/022 and NFR-009 remain Partial. |
+| ARC-GAP-001_Architecture-Gap-Register.md | 0.4 | Recorded GAP-006/007 as resolved for the Initial Production Architecture Baseline, with residual scope preserved. |
+| DOCUMENTATION-PUBLICATION-MANIFEST.md | Section 9 | Recorded this coordinated governance update and its boundaries. |
 
-All changes are limited to `docs/architecture-baseline-v0.1`. No v2.0 technical source document was changed. No merge to `main` is performed or authorized by this update. The HLA remains Draft for Architecture Review; these edits do not establish implementation completion, runtime test evidence, production acceptance, or final HLA baseline approval.
+The update is limited to `docs/architecture-baseline-v0.1`. No technical v2.0 source document, archive, or unrelated file is changed. No merge to `main`, push to another branch, or PR is included. The HLA remains **Draft for Architecture Review**; these changes do not establish implementation completion, runtime test evidence, production acceptance, or final HLA baseline approval.
