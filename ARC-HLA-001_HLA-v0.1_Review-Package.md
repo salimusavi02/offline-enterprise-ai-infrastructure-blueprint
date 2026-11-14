@@ -2,7 +2,7 @@
 ## Enterprise AI Infrastructure — High-Level Architecture
 **Document ID:** ARC-HLA-001  
 **Proposed Version:** 0.1  
-**Review Package Revision:** 0.3 — GAP-006 / GAP-007 refinement  
+**Review Package Revision:** 0.4 — incremental Index Set and authorization-flow refinement  
 **Status:** Draft for Architecture Review  
 **Review baseline date:** 2026-11-10  
 **Working repository branch:** `docs/architecture-baseline-v0.1`  
@@ -93,17 +93,17 @@ The following matrix is the control document for authoring HLA v0.1. Requirement
 | 2 | **Architecture Context, Scope & Assumptions** — establish boundaries and operating context | Who uses and administers the system? Which external systems exist? What is air-gapped? What is explicitly excluded? | Context statement; actors; external dependencies; deployment assumptions; in-scope/out-of-scope table; assumptions and constraints register | FR; SEC; NFR; CON | ADR-005, ADR-006; OPEN-001, OPEN-003, OPEN-004, OPEN-005, OPEN-006, OPEN-010 | D01 | README; Architecture Requirements; Scope & Decision Register; SINA Roadmap (context only) | No detailed network design, ports, firewall rules, or server sizing | External identity provider, source systems, and user population require confirmation |
 | 3 | **Architecture Principles & Design Philosophy** — define rules that guide design and trade-offs | Which principles are mandatory? How are replaceability, offline operation, security, and data ownership enforced? | Principles with rationale and consequences; architectural invariants; accepted-vs-proposed terminology | SEC; NFR; OPS; CON | ADR-001…006; ADR-SSOT-001; OPEN-003, OPEN-006, OPEN-007…010 | D02 | Scope & Decision Register; AGENTS; ADR-SSOT-001; Architecture Requirements | No coding standards or detailed design patterns | Keep hexagonal architecture as a design principle only where it does not conflict with explicit ownership and data-flow decisions |
 | 4 | **System Context & External Interactions** — define system boundary and actors | Which human and machine actors interact? Which systems provide documents, identity, models, or administration? What crosses the trust boundary? | System context narrative; actor/system catalogue; interaction descriptions; trust-boundary annotations | FR; SEC; INT (category currently unresolved); CON | OPEN-003, OPEN-005, OPEN-006 | D01, D10 | End-to-End Data Flow; Requirements; SINA operational docs | No detailed API contract, protocol version, or integration schema | Requirement group INT is defined but no INT-xxx IDs were authored; reconcile before final traceability |
-| 5 | **Logical Architecture & Architectural Views** — present planes, components, and interactions | What are the logical components? Which plane owns each responsibility? What are the key interfaces and dependencies? | Plane model; component overview; responsibility catalogue; dependency rules; logical interaction narrative | FR; DR; SEC; NFR; OPS | ADR-001…006; OPEN-003, OPEN-005, OPEN-006, OPEN-011 | D02, D03 | Main Architecture; Data Flow; Data Lake; Decision Register | No process topology, container list, class diagram, or detailed API | Plane boundaries are logical, not necessarily deployment boundaries |
-| 6 | **Core Components & Responsibilities** — assign clear responsibility and ownership | What does each component own? Which components are authoritative? What must not be duplicated? | Component responsibility matrix; inputs/outputs; ownership; failure responsibilities; dependency constraints | FR; DR; SEC; OPS | ADR-003, ADR-004; OPEN-003, OPEN-006, OPEN-011 | D03 | Main Architecture; Data Flow; Requirements | No class-level design, internal algorithms, or complete service decomposition | Component names are logical placeholders; deployment/service granularity is TBD |
+| 5 | **Logical Architecture & Architectural Views** — present planes, components, and interactions | What are the logical components? Which plane owns each responsibility? What are the key interfaces and dependencies? | Plane model; component overview; responsibility catalogue; dependency rules; logical interaction narrative | FR; DR; SEC; NFR; OPS | ADR-001…006; OPEN-003, OPEN-005, OPEN-006, ADR-008 | D02, D03 | Main Architecture; Data Flow; Data Lake; Decision Register | No process topology, container list, class diagram, or detailed API | Plane boundaries are logical, not necessarily deployment boundaries |
+| 6 | **Core Components & Responsibilities** — assign clear responsibility and ownership | What does each component own? Which components are authoritative? What must not be duplicated? | Component responsibility matrix; inputs/outputs; ownership; failure responsibilities; dependency constraints | FR; DR; SEC; OPS | ADR-003, ADR-004; OPEN-003, OPEN-006, ADR-008 | D03 | Main Architecture; Data Flow; Requirements | No class-level design, internal algorithms, or complete service decomposition | Component names are logical placeholders; deployment/service granularity is TBD |
 | 7 | **Data Architecture & Ownership** — establish canonical data and derived-index boundaries | What is canonical? Where is each artifact stored? Which systems may be rebuilt? How are references and lineage maintained? | Data domain catalogue; system-of-record matrix; zone model; canonical chunk rule; derived-index policy; lineage overview | DR; SEC; NFR; OPS | ADR-001, ADR-002, ADR-003, ADR-004; OPEN-002, OPEN-004 | D04 | Data Lake Discussion Summary; Main Architecture; Decision Register | No bucket names, object-key format, table DDL, partition specification, or catalog implementation | Catalog and lakehouse choices remain OPEN; MinIO Processed Zone canonical chunk placement is accepted |
 | 8 | **Document Ingestion & Processing Architecture** — explain secure transformation from source document to canonical artifacts | How is a document admitted, validated, parsed, normalized, chunked, embedded, and made indexable? How are failures handled? | Write-path narrative; processing stages; artifact outputs; state transitions; validation and quarantine concepts; idempotency requirements at HLA level | FR; DR; SEC; NFR; OPS | ADR-001…003; OPEN-005, OPEN-007, OPEN-009, OPEN-010 | D05, D08 | End-to-End Data Flow; Data Lake; Persian Chunking document (reference only); norm-v1.0 code as implementation evidence | No chunk size, overlap, parser library, OCR engine, normalization rule details, or worker concurrency | norm-v1.0 remains Implementation Candidate under OPEN-007; Chunking parameters are TBD/benchmark |
 | 9 | **Hybrid Search & Retrieval Architecture** — describe separate retrieval paths and fusion | How do vector and lexical retrieval operate? How are candidates filtered, fused, ranked, and traced? | Query-path narrative; vector and lexical branch responsibilities; pre-filtering; RRF; retrieval result contract; failure/degraded-mode considerations | FR; DR; SEC; NFR | ADR-004; OPEN-003, OPEN-005, OPEN-007, OPEN-008, OPEN-009 | D06 | Main Architecture; Data Flow; RAG tools; Requirements | No analyzer configuration, embedding model selection, exact top-k, score thresholds, or index mappings | Qdrant + OpenSearch are baseline; Whoosh is legacy/conflicting and not baseline |
 | 10 | **RAG & LLM Integration Architecture** — show grounded answer generation and model boundaries | How are retrieved chunks authorized and assembled? How is context sent to the LLM? What happens when evidence is insufficient? | RAG sequence; context construction; citation/evidence handling; model runtime boundary; refusal/not-found behavior; offline model lifecycle reference | FR; SEC; NFR; OPS | ADR-006; OPEN-005, OPEN-006, OPEN-010 | D06, D10 | Main Architecture; Data Flow; SINA LLMOps (supporting operational reference) | No prompt templates, model benchmark, quantization parameters, token budget, or model selection | LLM and embedding model choices remain OPEN; CPU-only is the initial baseline, not a performance guarantee |
 | 11 | **Security & Authorization Architecture** — define trust boundaries and authorization enforcement | Where is identity established? How is document ACL enforced at retrieval and fetch time? What happens when policy or metadata is unavailable? | Security zones; identity context; ACL evaluation sequence; pre-filter plus authoritative revalidation; fail-closed rules; audit points | SEC; FR; NFR; OPS | OPEN-003, OPEN-006; cross-cutting security baseline | D07 | Requirements; Scope & Decision Register; Main Architecture; Data Flow | No detailed IAM integration, cryptographic key lifecycle, network ACLs, or policy language | PostgreSQL authoritative revalidation is mandatory before content fetch and context construction |
-| 12 | **Document Lifecycle, Versioning & Index Activation** — explain controlled document and index state transitions | How do document versions progress? When is a document active? How are both indexes built and validated? How is rollback handled? | Lifecycle state model; version relationships; index readiness; activation controller; active-pointer transition; rollback and supersession concepts | FR; DR; SEC; NFR; OPS | OPEN-011; ADR-003, ADR-004; OPEN-004 | D08, D09 | Data Flow; Decision Register; SINA LLMOps (only as supporting pattern) | No distributed transaction implementation, alias syntax, retry algorithm, or retention period | PostgreSQL cannot make Qdrant and OpenSearch activation one atomic transaction; use controlled workflow |
-| 13 | **Integration & Communication Architecture** — identify logical interaction patterns | Which interactions are synchronous or asynchronous? How are events, commands, and references exchanged? What must be reliable? | Interaction catalogue; communication pattern map; event/command distinction; correlation and idempotency expectations | INT (unresolved); FR; NFR; OPS | OPEN-005, OPEN-006, OPEN-011 | D10 | Data Flow; Main Architecture; Requirements | No final message broker, API schema, protocol, or event topic design | Do not assume a message broker until explicitly selected; synchronous/asynchronous split is to be validated |
+| 12 | **Document Lifecycle, Versioning & Index Activation** — explain controlled document and index state transitions | How do document versions progress? When is a document active? How are both indexes built and validated? How is rollback handled? | Lifecycle state model; version relationships; index readiness; activation controller; active-pointer transition; rollback and supersession concepts | FR; DR; SEC; NFR; OPS | ADR-008; ADR-003, ADR-004; OPEN-004 | D08, D09 | Data Flow; Decision Register; SINA LLMOps (only as supporting pattern) | No distributed transaction implementation, alias syntax, retry algorithm, or retention period | PostgreSQL cannot make Qdrant and OpenSearch activation one atomic transaction; use controlled workflow |
+| 13 | **Integration & Communication Architecture** — identify logical interaction patterns | Which interactions are synchronous or asynchronous? How are events, commands, and references exchanged? What must be reliable? | Interaction catalogue; communication pattern map; event/command distinction; correlation and idempotency expectations | INT (unresolved); FR; NFR; OPS | OPEN-005, OPEN-006, ADR-008 | D10 | Data Flow; Main Architecture; Requirements | No final message broker, API schema, protocol, or event topic design | Do not assume a message broker until explicitly selected; synchronous/asynchronous split is to be validated |
 | 14 | **Deployment & Infrastructure Architecture** — define initial physical deployment | What runs on the initial node? What are the infrastructure boundaries? What does air-gapped operation require? | Single-node deployment view; logical runtime groupings; local model/artifact stores; offline supply-chain boundary; CPU-only statement | NFR; OPS; CON; SEC | ADR-005, ADR-006; OPEN-010 | D11 | Decision Register; SINA Roadmap; SINA LLMOps; Requirements | No exact VM/container sizing, ports, OS hardening profile, HA topology, or Kubernetes | Single-node is accepted initial baseline; future scale-out requires a new decision |
-| 15 | **Operational Architecture & Observability** — define operations, diagnostics, and controlled maintenance | What is monitored? What is audited? How are failures detected and recovered operationally? | Operational responsibilities; metrics/logs/traces/audit concepts; health and readiness; backup/restore domains; maintenance and offline update lifecycle | OPS; NFR; SEC | OPEN-004, OPEN-006, OPEN-010, OPEN-011 | D12 | SINA RiskQA; SINA LLMOps; Requirements; Decision Register | No final alert thresholds, retention, dashboards, runbooks, or SLO values | Existing SINA operational numbers are legacy candidates, not approved project targets |
+| 15 | **Operational Architecture & Observability** — define operations, diagnostics, and controlled maintenance | What is monitored? What is audited? How are failures detected and recovered operationally? | Operational responsibilities; metrics/logs/traces/audit concepts; health and readiness; backup/restore domains; maintenance and offline update lifecycle | OPS; NFR; SEC | OPEN-004, OPEN-006, OPEN-010, ADR-008 | D12 | SINA RiskQA; SINA LLMOps; Requirements; Decision Register | No final alert thresholds, retention, dashboards, runbooks, or SLO values | Existing SINA operational numbers are legacy candidates, not approved project targets |
 | 16 | **Reliability, Backup & Recovery** — describe resilience limits and recovery principles | Which data is authoritative and must be backed up? Which indexes can be rebuilt? What recovery ordering is required? | Failure-domain overview; backup scope by data class; restore dependency order; rebuildability matrix; DR decision register | DR; NFR; OPS; CON | OPEN-004; ADR-001…004 | D04, D11, D12 | Data Lake; SINA LLMOps; SINA RiskQA; Requirements | No RPO/RTO commitments, backup cadence, replication topology, or recovery test procedure | Existing RPO/RTO values in SINA docs are not accepted; must be re-evaluated |
 | 17 | **Architecture Constraints, Risks & Open Decisions** — expose uncertainty and control future scope | What is accepted, open, candidate, deferred, or excluded? What are the material risks and decision dependencies? | Consolidated decision status; OPEN register references; risk summary; assumptions; future/experimental boundary; next design gates | All groups | ADR-001…006; ADR-SSOT-001; OPEN-001…011; RA-001…018 | D02 plus relevant diagrams | Scope & Decision Register; Requirements; Roadmap; Architecture Review findings | No closure of OPENs and no unapproved technology commitment | Ensure each OPEN has owner, expected output, exit criteria, and target phase in the controlling register |
 
@@ -327,17 +327,28 @@ The initial production baseline is CPU-only. The exact LLM, embedding model, rer
 
 ### 8.11 Security & Authorization
 
-The platform must establish an authenticated principal and propagate the relevant identity context through query processing. Qdrant and OpenSearch may apply ACL pre-filters to narrow candidate sets. Before content fetch and context construction, the platform must revalidate each candidate against authoritative PostgreSQL authorization data.
+PostgreSQL is the authoritative source for document-level ACL and lifecycle authorization. Qdrant and OpenSearch ACL pre-filters are defense-in-depth optimizations; they do not replace authoritative authorization checks. The baseline permission is document-level `READ`, default-deny, with no assumed ACL inheritance.
 
-If authorization data is unavailable, ambiguous, stale beyond an accepted policy, or cannot be evaluated, the platform must fail closed. Direct user access to canonical object storage must not bypass the authorization enforcement path. Security-relevant decisions and access events must be auditable.
+The mandatory retrieval authorization sequence is:
 
-#### ADR-007 baseline authorization contract
+1. Authenticate the user or service principal.
+2. Resolve the authorization context from the trusted identity source.
+3. Resolve and pin the compatible active retrieval reference from PostgreSQL.
+4. Apply ACL pre-filters in Qdrant and OpenSearch.
+5. Execute vector and lexical retrieval in parallel.
+6. Fuse candidates using RRF.
+7. **Authorization Checkpoint 1:** revalidate each candidate against current PostgreSQL ACL, document lifecycle, and active document version.
+8. Fetch canonical chunks from MinIO only for candidates that pass Checkpoint 1.
+9. Validate document version, chunk manifest, and content integrity/hash.
+10. Rerank using authorized canonical content only.
+11. **Authorization Checkpoint 2:** revalidate authorization and lifecycle/version state before context assembly.
+12. Assemble context from authorized canonical chunks only.
+13. Invoke the local LLM.
+14. Validate and deliver the response.
 
-The baseline authorization model is document-level and default-deny. The trusted user identity key is `issuer + subject`; service principals are separate from human principals, and group IDs come from the trusted identity source. PostgreSQL owns document ACL and the baseline `READ` grant. No ACL inheritance is assumed.
+The user identity key is the stable pair `issuer + subject`; service principals are distinct from human principals, and group IDs come from the trusted identity source. ACL pre-filters are not authoritative. Direct ACL revocation in PostgreSQL must be enforced at the authoritative checkpoint even if derived index metadata is stale. ACL synchronization is complete only after both indexes are updated; delayed grants may cause false negatives but must never cause disclosure.
 
-Qdrant and OpenSearch apply ACL pre-filters. After retrieval/fusion, PostgreSQL revalidates document state, active version, and current ACL before MinIO canonical content is fetched or any content enters LLM context. Invalid/expired identity context, PostgreSQL unavailability, retrieval-engine unavailability, or inability to apply a pre-filter fails closed. Direct PostgreSQL ACL revocation is enforced at revalidation even if indexes are stale; ACL synchronization is complete only after both indexes are updated. Delayed grants may cause false negatives, never disclosure.
-
-Group-membership changes are reflected through a fresh valid identity context. Identity-context maximum age and refresh/revocation behavior remain Detailed Security Design decisions. The IdP must be organization-approved and on-premises, but product selection, advanced RBAC, nested groups, and ACL inheritance remain OPEN-003 and outside this baseline.
+Unavailable or indeterminate authorization authority, invalid identity context, or inability to enforce a required pre-filter must fail closed. No unauthorized content may be fetched into the reranker, assembled into context, or sent to the LLM. Identity-context freshness and advanced authorization extensions remain under OPEN-003 and Detailed Security Design.
 
 ### 8.12 Document Lifecycle, Versioning & Index Activation
 
@@ -345,53 +356,19 @@ The high-level document lifecycle is:
 
 `RECEIVED → PROCESSING → PROCESSED → INDEXING → VALIDATING → ACTIVE`
 
-Exceptional states include `FAILED`, `REJECTED`, `SUPERSEDED`, and `DELETED`.
+Exceptional document states include `FAILED`, `REJECTED`, `SUPERSEDED`, `DELETING`, and `DELETED`.
 
-Index activation is a controlled workflow. The platform builds and validates the required Qdrant and OpenSearch index versions, records readiness, and then updates the authoritative active-version state through the activation controller. Because PostgreSQL, Qdrant, and OpenSearch do not share one distributed atomic transaction, the platform must use explicit readiness checks, recoverable state transitions, and rollback capability. A partially ready index pair must not be represented as a fully activated version.
+Document identity and index membership are separate concepts. The baseline maintains `document_id`, `document_version_id`, `chunk_manifest_id`, `index_set_id`, `index_version_id`, `index_member_id`, and `pipeline_run_id`. Canonical chunks remain in MinIO Processed Zone; PostgreSQL stores their metadata/references and the authoritative operational registry.
 
-#### ADR-008 coordinated generation contract
+#### ADR-008 — coordinated Index Set and incremental membership contract
 
-A single logical `generation_id` represents a compatible Qdrant/OpenSearch index pair and its configuration, not a document version. PostgreSQL is the sole authority for `active_generation_id`. The generation manifest records the target physical indexes, embedding model/version and vector dimensions, analyzer version, normalization/chunking contract versions, ACL schema version, expected document/chunk snapshot, validation result, and build timestamp.
+Qdrant and OpenSearch are paired representations of one logical Index Set. Membership is incremental per document version, not a full-corpus snapshot. Each paired membership must reference the same `document_version_id` and `chunk_manifest_id` in both engines. Adding or updating one document affects only its corresponding membership and does not require a full-corpus rebuild.
 
-Generation states are `BUILDING → VALIDATING → READY → ACTIVE → RETIRED`, with `FAILED` for unsuccessful build/validation. Activation requires both engines ready on the same generation, validated expected document/chunk coverage and version relationships, consistent vector dimensions and ACL metadata, and successful retrieval smoke tests. PostgreSQL updates the active pointer in its own transaction; no distributed transaction is assumed.
+PostgreSQL is the authoritative registry for membership, build/validation status, compatibility, and the active retrieval reference. Membership states are `BUILDING → VALIDATING → READY → ACTIVE → RETIRED`; failed build or validation enters `FAILED`. A membership can become ACTIVE only after both Qdrant and OpenSearch representations are complete and validated.
 
-Every hybrid query reads the PostgreSQL pointer and queries both engines on that generation. RRF runs only after generation consistency is confirmed. Engine unavailability, generation mismatch, or inability to apply ACL pre-filter fails the whole hybrid request with a controlled error; partial results and silent fallback are prohibited. Build/validation failure leaves the previous generation active. Rollback is an explicit pointer change to a previously READY valid generation. A replacement document version is not activated until both index representations are ready and validated; indexing failure preserves the previously active version.
+The active retrieval reference is switched in a PostgreSQL transaction. This is atomic only within PostgreSQL; no distributed transaction is assumed. A failed new build preserves the prior active membership. Query Planner consumes only ACTIVE and compatible memberships and pins the selected active reference for each query. Retired memberships are excluded from new queries and cleaned up only after in-flight references and retention requirements permit it.
 
-Detailed API/schema, retry/reconciliation mechanics, retention, and in-flight query draining remain Detailed Architecture work. This contract is architecture-level and is not runtime test evidence.
-
-### 8.13 Integration & Communication
-
-The HLA identifies logical interactions but does not select an unapproved message broker or protocol. Detailed Architecture must classify interactions as synchronous or asynchronous, define correlation and idempotency expectations, and specify error and retry behavior. Any selected communication technology must support offline operation and fit the single-node initial baseline.
-
-### 8.14 Deployment & Infrastructure
-
-The initial production deployment is on-premises, air-gapped, single-node, and CPU-only, using Docker Compose as the accepted deployment baseline. Persistent data services and model artifacts are hosted locally. The deployment view is conceptual; exact server sizing, storage capacity, network segmentation, ports, operating-system baseline, and backup target remain to be determined.
-
-Capacity and performance planning must be workload-based rather than inferred from the single-node topology. Before production acceptance, a representative workload profile must cover expected document volume and growth, document size and format mix (including OCR share where applicable), ingestion and processing rates, indexing workload, concurrent users and queries, retrieval latency objectives, and local CPU-only inference demand. The benchmark must evaluate the combined resource impact of MinIO, PostgreSQL, Qdrant, OpenSearch, application workloads, and local inference on the same host. Numerical latency, throughput, concurrency, and hardware-capacity targets remain TBD until the workload profile is agreed and benchmark evidence is available; this HLA makes no numerical SLO or capacity commitment.
-
-Kubernetes, multi-node clustering, and GPU acceleration are not part of the initial production architecture.
-
-### 8.15 Operational Architecture & Observability
-
-The platform requires operational visibility across ingestion, processing, retrieval, authorization, generation, index activation, model lifecycle, and storage. Metrics, logs, traces, audit events, health/readiness information, and backup/restore status should be correlated sufficiently to support troubleshooting and incident response. For performance and capacity evaluation, workload-level measures (ingestion, processing and indexing throughput; retrieval latency; concurrency; and inference throughput) should be correlated with host and component resource measures (CPU, memory, storage capacity and I/O) across MinIO, PostgreSQL, Qdrant, OpenSearch, application workloads, and local inference.
-
-Existing SINA operational documents provide historical design inputs, but their thresholds, retention periods, and service targets must not be treated as approved project-level commitments without reconciliation.
-
-### 8.16 Reliability, Backup & Recovery
-
-Backup and recovery design must distinguish authoritative data from rebuildable indexes. Original documents, canonical artifacts, PostgreSQL metadata/ACL/lifecycle/lineage, model artifacts, and configuration/secrets have different recovery characteristics and priorities. Derived indexes may be rebuilt, subject to acceptable recovery time and source availability.
-
-RPO/RTO targets, backup cadence, media separation, off-site strategy, restore ordering, and recovery-test frequency remain OPEN and require explicit approval. Existing values in historical SINA documents are not accepted targets.
-
-### 8.17 Constraints, Risks & Open Decisions
-
-The HLA preserves the remaining applicable open decisions; OPEN-011 is resolved by ADR-008. ADR-007 establishes the Initial Production document-level authorization baseline, while OPEN-003 is limited to advanced authorization extensions and identity-provider/freshness details. The most material architectural dependencies include advanced authorization, application-layer responsibility boundaries, Persian normalization/search analysis/chunking contracts, embedding and LLM selection, hardware sizing, backup and recovery targets, catalog/lakehouse choices, entity-centric document modeling, and controlled index activation.
-
-Future technologies and capabilities must remain outside the initial baseline unless justified through a spike, PoC, and explicit approval. This HLA is ready for architecture review only after the provisional traceability and repository cross-reference gaps are resolved or explicitly accepted as review limitations.
-
----
-
-# Part V — Persian Draft (پیش‌نویس فارسی کنترل‌شده)
+Update, reindex, deletion, idempotency, and reconciliation must preserve the distinction between index-membership retirement and logical-document deletion. Detailed API/schema, physical index naming, retry/reconciliation implementation, retention values, and in-flight query draining remain Detailed Architecture work. This is an architecture-level contract, not runtime verification evidence.
 
 ## 9. خلاصه اجرایی
 
@@ -473,17 +450,28 @@ RAG Orchestrator بازیابی شواهد مجاز، ساخت Context و فرا
 
 ## 19. امنیت و مجوزدهی
 
-سامانه باید Principal احرازشده را ایجاد و Context هویت مرتبط را در مسیر پردازش Query منتقل کند. Qdrant و OpenSearch می‌توانند برای محدودکردن مجموعه کاندیداها Pre-filter مبتنی بر ACL اعمال کنند. پیش از Fetch محتوا و ساخت Context، سامانه باید هر کاندیدا را با داده معتبر مجوزدهی در PostgreSQL مجدداً اعتبارسنجی کند.
+PostgreSQL مرجع معتبر ACL در سطح سند و وضعیت مجوزدهی چرخه عمر است. ACL Pre-filter در Qdrant و OpenSearch صرفاً به‌عنوان Defense-in-Depth و برای محدودکردن کاندیداها استفاده می‌شود و جایگزین کنترل معتبر مجوزدهی نیست. مجوز پایه `READ` در سطح سند، با سیاست Default Deny و بدون فرض وراثت ACL است.
 
-در صورت عدم دسترسی به داده مجوزدهی، ابهام، کهنگی خارج از سیاست مصوب یا ناتوانی در ارزیابی، سامانه باید Fail-closed عمل کند. دسترسی مستقیم کاربر به Object Storage نباید مسیر اعمال مجوزدهی را دور بزند. تصمیمات و رویدادهای امنیتی باید قابل Audit باشند.
+ترتیب الزامی کنترل دسترسی در مسیر Retrieval:
 
-#### قرارداد مجوزدهی پایه ADR-007
+1. احراز هویت کاربر یا Service Principal.
+2. استخراج Authorization Context از منبع هویت معتبر.
+3. دریافت و تثبیت مرجع بازیابی فعال و سازگار از PostgreSQL.
+4. اعمال ACL Pre-filter در Qdrant و OpenSearch.
+5. اجرای موازی Vector Retrieval و Lexical Retrieval.
+6. ادغام کاندیداها با RRF.
+7. **نقطه کنترل دسترسی اول:** اعتبارسنجی مجدد ACL جاری، چرخه عمر سند و نسخه فعال هر کاندیدا در PostgreSQL.
+8. Fetch کردن Chunkهای Canonical از MinIO فقط برای کاندیداهای مجاز.
+9. اعتبارسنجی نسخه سند، Chunk Manifest و یکپارچگی/Hash محتوا.
+10. اجرای Reranking فقط بر محتوای Canonical مجاز.
+11. **نقطه کنترل دسترسی دوم:** اعتبارسنجی مجدد مجوز و وضعیت چرخه عمر/نسخه پیش از ساخت Context.
+12. ساخت Context فقط از Chunkهای Canonical مجاز.
+13. فراخوانی Local LLM.
+14. اعتبارسنجی و تحویل پاسخ.
 
-مدل مجوزدهی خط مبنا در سطح سند و مبتنی بر Default Deny است. کلید هویت معتبر کاربر زوج `issuer + subject` است؛ Service Principal از Principal انسانی مستقل بوده و Group IDها از منبع هویت معتبر دریافت می‌شوند. مالک ACL اسناد PostgreSQL و مجوز پایه `READ` است. وراثت ACL فرض نمی‌شود.
+شناسه هویت پایدار کاربر زوج `issuer + subject` است؛ Service Principal از کاربر انسانی مستقل بوده و Group ID از منبع هویت معتبر دریافت می‌شود. Pre-filter مرجع نهایی مجوزدهی نیست. لغو مستقیم ACL در PostgreSQL باید در نقطه اعتبارسنجی معتبر اعمال شود، حتی اگر Metadata ایندکس‌ها قدیمی باشد. همگام‌سازی ACL فقط پس از به‌روزرسانی هر دو Index کامل است؛ تأخیر Grant می‌تواند False Negative ایجاد کند، اما نباید موجب افشای اطلاعات شود.
 
-Qdrant و OpenSearch باید ACL Pre-filter اعمال کنند. پس از بازیابی/ادغام نتایج، PostgreSQL وضعیت سند، نسخه فعال و ACL جاری را پیش از Fetch محتوای Canonical از MinIO یا ورود محتوا به Context مدل مجدداً اعتبارسنجی می‌کند. Identity Context نامعتبر/منقضی، عدم دسترسی به PostgreSQL یا هر موتور بازیابی و عدم امکان اعمال Pre-filter باید به Fail-closed منجر شود. لغو مستقیم ACL در PostgreSQL حتی با وجود Indexهای قدیمی در نقطه اعتبارسنجی اعمال می‌شود؛ همگام‌سازی ACL تنها پس از به‌روزرسانی هر دو Index کامل است. تأخیر Grant می‌تواند False Negative ایجاد کند، اما هرگز نباید موجب افشای داده شود.
-
-تغییر عضویت گروه از طریق Identity Context تازه و معتبر منعکس می‌شود. حداکثر عمر Identity Context و رفتار Refresh/Revocation در Detailed Security Design تعیین می‌شوند. IdP باید مورد تأیید سازمان و On-Premises باشد، اما انتخاب محصول، Advanced RBAC، گروه‌های تو‌در‌تو و وراثت ACL ذیل OPEN-003 و خارج از این خط مبنا هستند.
+در صورت عدم دسترسی یا ابهام مرجع مجوزدهی، نامعتبر بودن Identity Context یا ناتوانی در اعمال Pre-filter الزامی، سامانه باید Fail-closed عمل کند. محتوای غیرمجاز نباید Fetch شود، وارد Reranker یا Context شود یا به LLM ارسال گردد. تازگی Identity Context و توسعه‌های پیشرفته مجوزدهی ذیل OPEN-003 و Detailed Security Design باقی می‌مانند.
 
 ## 20. چرخه عمر سند، نسخه‌بندی و فعال‌سازی Index
 
@@ -491,19 +479,19 @@ Qdrant و OpenSearch باید ACL Pre-filter اعمال کنند. پس از با
 
 `RECEIVED → PROCESSING → PROCESSED → INDEXING → VALIDATING → ACTIVE`
 
-وضعیت‌های استثنایی شامل `FAILED`، `REJECTED`، `SUPERSEDED` و `DELETED` هستند.
+وضعیت‌های استثنایی سند شامل `FAILED`، `REJECTED`، `SUPERSEDED`، `DELETING` و `DELETED` هستند.
 
-فعال‌سازی Index یک Workflow کنترل‌شده است. سامانه نسخه‌های موردنیاز Qdrant و OpenSearch را ساخته و اعتبارسنجی می‌کند، آمادگی را ثبت می‌نماید و سپس Controller وضعیت نسخه فعال را از طریق مرجع معتبر PostgreSQL تغییر می‌دهد. از آنجا که PostgreSQL، Qdrant و OpenSearch تراکنش اتمیک توزیع‌شده مشترک ندارند، باید از کنترل آمادگی، انتقال وضعیت قابل بازیابی و قابلیت Rollback استفاده شود. یک جفت Index که تنها بخشی از آن آماده است نباید به‌عنوان نسخه فعال کامل معرفی شود.
+هویت سند و Membership ایندکس دو مفهوم مستقل‌اند. شناسه‌های پایه شامل `document_id`، `document_version_id`، `chunk_manifest_id`، `index_set_id`، `index_version_id`، `index_member_id` و `pipeline_run_id` هستند. Chunkهای Canonical در Processed Zone از MinIO نگهداری می‌شوند؛ PostgreSQL Metadata/Reference و Registry عملیاتی معتبر را ثبت می‌کند.
 
-#### قرارداد Generation هماهنگ ADR-008
+#### قرارداد ADR-008 — Index Set هماهنگ و Membership افزایشی
 
-یک `generation_id` منطقی مشترک، جفت سازگار Indexهای Qdrant و OpenSearch و پیکربندی آن‌ها را مشخص می‌کند و با نسخه سند متفاوت است. PostgreSQL تنها مرجع معتبر `active_generation_id` است. Generation Manifest شناسه Indexهای فیزیکی هدف، نسخه مدل Embedding و ابعاد بردار، نسخه Analyzer، نسخه قراردادهای Normalization/Chunking، نسخه ACL Schema، Snapshot اسناد/Chunkهای مورد انتظار، نتیجه Validation و زمان Build را ثبت می‌کند.
+Qdrant و OpenSearch دو نمایش جفت‌شده از یک Index Set منطقی هستند. Membership به‌صورت افزایشی و در سطح هر نسخه سند مدیریت می‌شود، نه بر مبنای Snapshot کل Corpus. هر Membership جفت‌شده در هر دو موتور باید به همان `document_version_id` و `chunk_manifest_id` ارجاع دهد. افزودن یا به‌روزرسانی یک سند فقط Membership متناظر را تحت تأثیر قرار می‌دهد و به بازسازی کل Corpus نیاز ندارد.
 
-وضعیت‌های Generation عبارت‌اند از `BUILDING → VALIDATING → READY → ACTIVE → RETIRED` و برای شکست Build/Validation وضعیت `FAILED` در نظر گرفته می‌شود. فعال‌سازی مستلزم آمادگی هر دو موتور با Generation یکسان، اعتبارسنجی پوشش اسناد/Chunkهای مورد انتظار و ارتباط نسخه‌ها، سازگاری ابعاد بردار و ACL Metadata و موفقیت Retrieval Smoke Test است. PostgreSQL Pointer فعال را در تراکنش داخلی خود تغییر می‌دهد؛ تراکنش توزیع‌شده فرض نمی‌شود.
+PostgreSQL مرجع معتبر Registry برای Membership، وضعیت Build/Validation، سازگاری و مرجع بازیابی فعال است. وضعیت‌های Membership عبارت‌اند از `BUILDING → VALIDATING → READY → ACTIVE → RETIRED` و شکست Build یا Validation به `FAILED` منتهی می‌شود. Membership فقط پس از تکمیل و اعتبارسنجی نمایش‌های هر دو موتور ACTIVE می‌شود.
 
-هر Query ترکیبی Pointer را از PostgreSQL می‌خواند و هر دو موتور را روی همان Generation Query می‌کند. RRF تنها پس از تأیید سازگاری Generation اجرا می‌شود. عدم دسترسی به هر موتور، اختلاف Generation یا عدم امکان اعمال ACL Pre-filter کل درخواست Hybrid را با خطای کنترل‌شده متوقف می‌کند؛ نتیجه ناقص یا بازگشت خاموش مجاز نیست. شکست Build/Validation نسل فعال قبلی را حفظ می‌کند. Rollback با تغییر صریح Pointer به Generation قبلی READY و معتبر انجام می‌شود. نسخه جایگزین سند تا آماده و معتبر شدن هر دو نمایش Index فعال نمی‌شود و شکست Indexing نسخه فعال قبلی را حفظ می‌کند.
+مرجع بازیابی فعال در یک تراکنش PostgreSQL تغییر می‌کند. اتمیک بودن فقط در محدوده PostgreSQL است و تراکنش توزیع‌شده فرض نمی‌شود. شکست Build جدید Membership فعال قبلی را حفظ می‌کند. Query Planner فقط Membershipهای ACTIVE و سازگار را مصرف کرده و مرجع فعال انتخاب‌شده را برای هر Query تثبیت می‌کند. Membershipهای RETIRED از Queryهای جدید خارج شده و پس از پایان ارجاع Queryهای در حال اجرا و رعایت Retention پاک‌سازی می‌شوند.
 
-طراحی تفصیلی API/Schema، سازوکار Retry/Reconciliation، سیاست نگهداری و تخلیه Queryهای در حال اجرا به Detailed Architecture واگذار می‌شود. این قرارداد در سطح معماری است و شواهد آزمون Runtime محسوب نمی‌شود.
+فرآیندهای Update، Reindex، Deletion، Idempotency و Reconciliation باید بازنشسته‌کردن Membership را از حذف سند منطقی متمایز نگه دارند. طراحی تفصیلی API/Schema، نام‌گذاری فیزیکی Indexها، پیاده‌سازی Retry/Reconciliation، مقادیر Retention و تخلیه Queryهای در حال اجرا به Detailed Architecture واگذار می‌شود. این قرارداد در سطح معماری است و شواهد آزمون Runtime محسوب نمی‌شود.
 
 ## 21. معماری یکپارچه‌سازی و ارتباطات
 
@@ -531,7 +519,7 @@ Kubernetes، کلاستر چندگره‌ای و شتاب‌دهی GPU بخشی 
 
 ## 25. محدودیت‌ها، ریسک‌ها و تصمیمات باز
 
-این HLA تصمیمات باز باقی‌مانده را حفظ می‌کند؛ OPEN-011 با ADR-008 بسته شده است. ADR-007 خط مبنای مجوزدهی در سطح سند برای انتشار اولیه عملیاتی را تعیین می‌کند و OPEN-003 به توسعه‌های پیشرفته مجوزدهی و جزئیات محصول/تازگی Identity Provider محدود می‌شود. وابستگی‌های مهم معماری شامل مجوزدهی پیشرفته، مرزبندی مسئولیت‌های لایه Application، قراردادهای مستقل Normalization/Search Analysis/Chunking فارسی، انتخاب Embedding و LLM، ظرفیت سخت‌افزار، اهداف Backup/Recovery، انتخاب Catalog/Lakehouse، مدل Entity-Centric و فعال‌سازی کنترل‌شده Index است.
+این HLA تصمیمات باز باقی‌مانده را حفظ می‌کند؛ ADR-008 با ADR-008 بسته شده است. ADR-007 خط مبنای مجوزدهی در سطح سند برای انتشار اولیه عملیاتی را تعیین می‌کند و OPEN-003 به توسعه‌های پیشرفته مجوزدهی و جزئیات محصول/تازگی Identity Provider محدود می‌شود. وابستگی‌های مهم معماری شامل مجوزدهی پیشرفته، مرزبندی مسئولیت‌های لایه Application، قراردادهای مستقل Normalization/Search Analysis/Chunking فارسی، انتخاب Embedding و LLM، ظرفیت سخت‌افزار، اهداف Backup/Recovery، انتخاب Catalog/Lakehouse، مدل Entity-Centric و فعال‌سازی کنترل‌شده Index است.
 
 فناوری‌ها و قابلیت‌های آینده باید خارج از Baseline اولیه باقی بمانند، مگر آنکه از مسیر Spike، PoC و تصویب صریح عبور کنند. این HLA زمانی برای بازبینی معماری آماده تلقی می‌شود که شکاف‌های Traceability و Cross-Reference مخزن رفع شده یا به‌عنوان محدودیت بازبینی صریحاً پذیرفته شده باشند.
 
@@ -575,7 +563,7 @@ Kubernetes، کلاستر چندگره‌ای و شتاب‌دهی GPU بخشی 
 
 ## 28. Decisions deliberately not made
 
-- No closure of OPEN-001…OPEN-011.
+- No closure of OPEN-001…ADR-008.
 - No acceptance of norm-v1.0; it remains an Implementation Candidate under OPEN-007.
 - No acceptance of exact chunk size/overlap.
 - No selection of a final Persian search analyzer.
