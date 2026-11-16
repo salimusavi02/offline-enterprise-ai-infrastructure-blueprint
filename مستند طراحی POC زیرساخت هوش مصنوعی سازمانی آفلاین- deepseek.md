@@ -677,7 +677,7 @@
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 9**: **Python logging + PostgreSQL audit_log + Ragas (Option 1)**. Master Prompt صراحتاً «سبک و کم‌هزینه» را در اولویت قرار داده. هدف ارزیابی POC ایجاد خط پایه است، نه داشبورد پایش زمان‌واقعی. شاخص‌های تخصصی RAG در Ragas (faithfulness، context recall و غیره) مستقیماً با نیازهای کمی پذیرشance Criteria مطابقت دارند. Langfuse و Phoenix به‌عنوان گزینه‌های آینده حفظ می‌شوند.
+**توصیٔ Layer 9**: **Python logging + PostgreSQL audit_log + Ragas (Option 1)**. Master Prompt صراحتاً «سبک و کم‌هزینه» را در اولویت قرار داده. هدف ارزیابی POC ایجاد خط پایه است، نه داشبورد پایش زمان‌واقعی. شاخص‌های تخصصی RAG در Ragas (faithfulness، context recall و غیره) مستقیماً با نیازهای کمی Acceptance Criteria مطابقت دارند. Langfuse و Phoenix به‌عنوان گزینه‌های آینده حفظ می‌شوند.
 
 ---
 
@@ -713,7 +713,7 @@
 | مزایا | بدون daemon، امنیت rootless بهتر |
 | محدودیت‌ها | سازگاری با Docker Compose گاهی تفاوت دارد؛ آشنایی کاربر POC ممکن است کمتر باشد |
 | پیچیدگی نصب | کم–متوسط |
-| آفلاین | completely ممکن |
+| آفلاین | کاملاً ممکن |
 | وابستگی‌ها | Podman، podman-compose |
 | منابع سخت‌افزاری | مشابه Docker |
 | License | Apache-2.0 |
@@ -1255,7 +1255,7 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 | ابزارها | Ragas، مجموعه‌دادهٔ آزمون دستی، اسکریپت‌های تست |
 | پیش‌نیاز | Phase 5 |
 | خروجی قابل تحویل | گزارش ارزیابی (Recall@K، Precision@K، Faithfulness، زمان پاسخ)؛ گزارش تست امنیتی؛ گزارش Backup/Restore |
-| معیار پذیرش | همهٔ معیارهای پذیرشance Criteria (بخش ۱۵) برآورده شوند یا انحرافات مستند شوند |
+| معیار پذیرش | همهٔ معیارهای Acceptance Criteria (بخش ۱۵) برآورده شوند یا انحرافات مستند شوند |
 | وابستگی | Phase 5 |
 
 ### تخمین کل زمان
@@ -1264,7 +1264,7 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 
 ---
 
-## ۱۵. معیارهای پذیرش (پذیرشance Criteria)
+## ۱۵. معیارهای پذیرش (Acceptance Criteria)
 
 ### معیارهای پردازش اسناد
 
@@ -1555,8 +1555,6 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 
 | # | بخش | وضعیت |
 |---|---|---|
-| ۱ | Executive Summary | ✅ |
-| ۲ | POC Scope and Assumptions | ✅ |
 | ۱ | خلاصهٔ اجرایی | ✅ |
 | ۲ | دامنه و فرضیات POC | ✅ |
 | ۳ | مبنای معماری | ✅ |
