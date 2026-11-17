@@ -1,6 +1,6 @@
 # مستند طراحی POC زیرساخت هوش مصنوعی سازمانی آفلاین
 
-**نسخهٔ سند**: ۰.۲ (پیش‌نویس — Proposed / Recommended، نه تصمیم معماری مصوب)
+**نسخهٔ سند**: ۰.۳ (پیش‌نویس — Proposed / Recommended، نه تصمیم معماری مصوب)
 **تاریخ آخرین به‌روزرسانی**: ۱۴۰۵/۰۲/۲۶ (2026-05-26)
 **دامنه**: Minimum Viable Offline Enterprise AI Infrastructure POC
 **زبان**: فارسی، با حفظ نام‌های فنی انگلیسی
@@ -321,7 +321,7 @@
 - **Word**: `python-docx` برای استخراج پاراگراف و استایل Heading؛ یا Docling در صورت آماده‌سازی offline wheel و مدل.
 - **Excel**: `openpyxl` برای خواندن sheet/row/column/cell با حفظ `sheet_name`، `row_range`، `column_range` به‌عنوان Chunk Metadata.
 - **نرمال‌سازی فارسی**: یک ماژول تابع Python داخل Ingestion (نه سرویس جدا): یکسان‌سازی Arabic/Persian (`ي→ی`، `ك→ک`)، مدیریت ZWNJ، یکسان‌سازی ارقام، حذف tatweel. متن RTL چیدمان خاص نمی‌خواهد (RAG به محتوای متنی توجه دارد).
-- **Chunking**: تفکیک بر اساس پاراگراف/بلوک جدول، اندازهٔ هدف ۵۱۲–۱۰۲۴ توکن (تقریب کاراکتری)، overlap ۱۰–۱۵٪.
+- **Chunking**: تفکیک بر اساس پاراگراف/بلوک جدول، اندازهٔ هدف ۵۱۲–۱۰۲۴ توکن (تقریب کاراکتری)، overlap ۱۰–۱۵٪. برای جداول Excel: جدول‌های کوچک (کمتر از ۵۰ سطر) کل جدول همراه با سرستون به‌عنوان یک chunk واحد ذخیره می‌شوند؛ جدول‌های بزرگ هر «گروه سطر» (row group) به‌عنوان یک chunk هستند و سرستون‌ها در ابتدای هر chunk تکرار می‌شوند. دلیل: جلوگیری از جداسازی سرستون از سطرهای داده به طریقی که مدل نمی‌تواند عدد را به معنای ستونش مرتبط کند. این قاعده در بخش ۱۵ (Acceptance Criteria) به‌عنوان معیار قابل اندازه‌گیری ثبت می‌شود: «بررسی وجود سرستون در ابتدا هر chunk جدول بزرگ».
 
 #### Option 1 — python-docx + openpyxl (Best Fit for POC)
 
@@ -441,7 +441,7 @@
 
 **مسئولیت**: Vector Search، BM25، Hybrid، RRF، Metadata Filtering، Deduplication، ACL Revalidation، Reranking اختیاری، Context Assembly.
 
-**تصمیم ساده‌سازی**: Reranking حذف می‌شود (یا یک تابع سادهٔ امتیازدهی). RRF به‌صورت تابع خالص Python مستقل پیاده‌سازی می‌شود، نه وابسته به فریم‌ورک. ACL Revalidation **قبل از** Context Assembly و اجباری است.
+**تصمیم ساده‌سازی**: Reranking حذف می‌شود (یا یک تابع سادهٔ امتیازدهی). RRF به‌صورت تابع خالص Python مستقل پیاده‌سازی می‌شود، نه وابسته به فریم‌ورک. ACL Revalidation **قبل از** Context Assembly و اجباری است. Query-Source Routing به‌صورت یک تابع قاعده‌محور ساده در `app` پیاده‌سازی می‌شود و به Qdrant یا OpenSearch وابسته نیست.
 
 #### Option 1 — Qdrant + OpenSearch + RRF دستی (Best Fit for POC)
 
@@ -458,6 +458,16 @@
 | منابع سخت‌افزاری | OpenSearch: ۲–۴ گیگابایت RAM؛ Qdrant: ۵۰۰ مگابایت–۱ گیگابایت |
 | License | Qdrant: Apache 2.0؛ OpenSearch: Apache 2.0 (نیازمند تأیید) |
 | مستندات | https://qdrant.tech/documentation ؛ https://opensearch.org/docs |
+
+#### Reranking اختیاری با ColBERT (درون Qdrant)
+
+Qdrant از نسخهٔ ۱.۱۰ به بعد قابلیت multivector و پشتیبانی بومی از ColBERT را اضافه کرده است. این امکان را می‌دهد که ردرanking برداری (late interaction) مستقیماً در Qdrant انجام شود بدون نیاز به سرویس جداگانه.
+
+**مزیت**: ترکیب dense vector + BM25 + RRF + reranking همه در یک فراخوانی API و بدون اضافه‌کردن سرویس جدید، مطابق اصل «حداقل Deployable Unit».
+
+**محدودیت**: نیازمند تأیید نسخهٔ دقیق Qdrant در Phase 1؛ افزایش جزئی مصرف RAM و زمان پاسخ.
+
+**تصمیم POC**: به‌صورت «گام اختیاری درون‌برنامه‌ای» ثبت شود، نه سرویس جدا. اگر در آزمون کیفیت کافی نبود، غیرفعال می‌شود. این زیربخش جایگزین Option 1/2/3 نیست، بلکه مکمل آن است.
 
 #### Option 2 — Qdrant تنها با Sparse Vector (Strong Alternative)
 
@@ -506,6 +516,7 @@
 - PostgreSQL: Operational Metadata، Workflow State، ACL، Lineage
 - Qdrant: Derived Vector Index (قابل بازسازی)
 - OpenSearch: Derived Lexical Index (قابل بازسازی)
+- هر chunk باید ستون `embedding_model_version` داشته باشد که نسخهٔ مدل Embedding استفاده‌شده را ثبت کند. این فیلد در Query Flow برای فیلتر chunkهای سازگار با مدل فعلی استفاده می‌شود.
 
 #### Option 1 — MinIO + PostgreSQL + Qdrant + OpenSearch (Best Fit for POC)
 
@@ -751,7 +762,9 @@
 | **intfloat/multilingual-e5-large** | چندزبانه (شامل فارسی) | Sentence Transformers | ~۲.۲ گیگابایت | بالغ و پایدار، استفادهٔ گستردهٔ جامعه |
 | **sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2** | چندزبانه | Sentence Transformers | ~۴۷۰ مگابایت | سبک، مناسب POC با منابع محدود، کیفیت کمتر از دو گزینهٔ اول |
 
-**توصیٔ Embedding**: **multilingual-e5-large** برای شروع (تعادل کیفیت و پایداری)؛ در صورت کمبود منابع به MiniLM؛ در صورت نیاز به کیفیت بالاتر به bge-m3.
+**گزینهٔ جایگزین برای آزمون A/B: Yalda-Embedding**: مدل Yalda-Embedding (۵۹۵.۸ میلیون پارامتر، بر اساس Qwen3-Embedding-0.6B) به‌طور اختصاصی برای بازیابی فارسی توسعه یافته و در هشت وظیفهٔ FaMTEB بالاترین میانگین را در میان مدل‌های ۰.۶B کسب کرده است. چرا مهم است: embedding چندزبانهٔ عمومی ممکن است سقف کیفیت فارسی را پایین بیاورد. ملاحظه: این مدل در اکتبر ۲۰۲۶ منتشر شده و باید از نظر پایداری و پشتیبانی جامعه بررسی شود. تصمیم POC: به‌عنوان گزینهٔ آزمون A/B در کنار e5-large نگه داشته شود، نه جایگزین قطعی.
+
+**توصیه Embedding**: **e5-large برای شروع؛ Yalda-Embedding برای آزمون A/B در صورت اهمیت کیفیت فارسی**.
 
 ### ۶.۲. LLM — سه گزینه (اجرا محلی، پشتیبانی فارسی)
 
@@ -761,7 +774,7 @@
 | **Llama-3.1-8B-Instruct** | چندزبانه، فارسی متوسط | ~۵–۶ گیگابایت (Q4) | Ollama / llama.cpp | انتشار Meta، بالغ‌ترین اکوسیستم |
 | **Mistral-7B-Instruct-v0.3** | چندزبانه، فارسی ضعیف‌تر | ~۴–۵ گیگابایت (Q4) | Ollama / llama.cpp | زبان‌های اروپایی قوی، فارسی نیازمند آزمون |
 
-**توصیٔ LLM**: **Qwen2.5-7B-Instruct** (کوانتیزه Q4_K_M، فرمت Ollama). در سطح ۷B پوشش چندزبانهٔ گسترده‌تر و معمولاً پشتیبانی فارسی بهتر از Llama/Mistral هم‌مقیاس (نیازمند آزمون تجربی). در صورت ناکافی بودن کیفیت فارسی، گزینهٔ بعدی Qwen2.5-14B یا پذیرش تمرکز POC بر انگلیسی با پشتیبانی فارسی به‌عنوان قابلیت ثانویه.
+**توصیه LLM**: **Qwen2.5-7B-Instruct** (کوانتیزه Q4_K_M، فرمت Ollama). در سطح ۷B پوشش چندزبانهٔ گسترده‌تر و معمولاً پشتیبانی فارسی بهتر از Llama/Mistral هم‌مقیاس (نیازمند آزمون تجربی). در صورت ناکافی بودن کیفیت فارسی، گزینهٔ بعدی Qwen2.5-14B یا پذیرش تمرکز POC بر انگلیسی با پشتیبانی فارسی به‌عنوان قابلیت ثانویه.
 
 ### ۶.۳. نرمال‌سازی فارسی (داخل Ingestion Layer)
 
@@ -953,7 +966,7 @@ volumes:
 | ۱۰. Normalization | Worker (`app`) | ماژول نرمال‌سازی فارسی + یکسان‌سازی Unicode |
 | ۱۱. Chunking | Worker (`app`) | Chunkهای ۵۱۲–۱۰۲۴ توکن با overlap ۱۰–۱۵٪ |
 | ۱۲. Canonical Chunk Persistence | MinIO + PostgreSQL | محتوا در MinIO (`chunks/{document_id}/`)؛ metadata در PG (`chunks` جدول) |
-| ۱۳. Embedding Generation | Worker (`app`) | Sentence Transformers (`multilingual-e5-large`) |
+| ۱۳. Embedding Generation | Worker (`app`) | Sentence Transformers (`multilingual-e5-large`); ثبت `embedding_model_version` در metadata chunk |
 | ۱۴. Qdrant Indexing | Qdrant (`backend`) | upsert vectors با `chunk_id` به‌عنوان point ID |
 | ۱۵. OpenSearch Indexing | OpenSearch (`backend`) | index سند با فیلد `content` و `chunk_id` |
 | ۱۶. Index Validation | Worker (`app`) | شمارش chunkهای ایندکس‌شده در Qdrant و OpenSearch و مقایسه با PG |
@@ -973,21 +986,22 @@ volumes:
 | ۲. Query Submission | Streamlit → FastAPI | متن پرسش |
 | ۳. Authorization Context Resolution | PostgreSQL (`backend`) | استخراج `user_id` و نقش‌ها از Session |
 | ۴. Query Normalization | FastAPI (`app`) | همان تابع نرمال‌سازی فارسی Ingestion |
-| ۵. Query Embedding | Sentence Transformers (`app`) | بردار پرسش |
+| ۵. Query Embedding | Sentence Transformers (`app`) | بردار پرسش با مدل فعلی؛ بررسی سازگاری `embedding_model_version` chunkها پیش از جستجو |
 | ۶. Vector Search | Qdrant (`backend`) | top-K (مثلاً ۲۰) با فیلتر `document_status = active` |
 | ۷. BM25 Search | OpenSearch (`backend`) | top-K (مثلاً ۲۰) با فیلتر مشابه |
-| ۸. RRF Fusion | FastAPI (`app`) | تابع Python خالص: `score = Σ 1/(k + rank_i)` با `k=60` |
-| ۹. ACL Revalidation | PostgreSQL (`backend`) | **اجباری**: برای هر `chunk_id`، بررسی `document_acl`؛ حذف chunkهای غیرمجاز |
-| ۱۰. Canonical Chunk Retrieval | MinIO (`backend`) | خواندن محتوای chunkهای مجاز از `chunks/` |
-| ۱۱. (Optional Reranking) | FastAPI (`app`) | در POC حذف می‌شود؛ جای آن در کد به‌صورت تابع خالی نگه داشته می‌شود |
-| ۱۲. Context Assembly | FastAPI (`app`) | چیدن chunkها بر اساس امتیاز RRF؛ محدودیت توکن |
-| ۱۳. Local LLM Inference | Ollama (`backend`) | فراخوانی API با prompt شامل context |
-| ۱۴. Response Generation | Ollama → FastAPI | متن پاسخ |
-| ۱۵. Source Attribution | FastAPI (`app`) | نگاشت chunkهای استفاده‌شده به `document_id` و `location_meta` |
-| ۱۶. Response Delivery | FastAPI → Streamlit | پاسخ + فهرست منابع |
-| ۱۷. Audit Logging | PostgreSQL (`backend`) | ثبت `query_id`، `chunk_ids`، زمان LLM، توکن‌ها |
+| ۸. Query-Source Routing | FastAPI (`app`) | تشخیص نوع پرسش با قاعدهٔ ساده (کلمات عددی/مالی/آماری → وزن بیشتر به excel_sheet_row؛ کلمات مفهومی/توضیحی → وزن بیشتر به word_paragraph). بدون LLM و بدون مدل جدید. |
+| ۹. RRF Fusion | FastAPI (`app`) | تابع Python خالص: `score = Σ 1/(k + rank_i)` با `k=60` |
+| ۱۰. ACL Revalidation | PostgreSQL (`backend`) | **اجباری**: برای هر `chunk_id`، بررسی `document_acl`؛ حذف chunkهای غیرمجاز |
+| ۱۱. Canonical Chunk Retrieval | MinIO (`backend`) | خواندن محتوای chunkهای مجاز از `chunks/` |
+| ۱۲. (Optional Reranking) | FastAPI (`app`) | در POC حذف می‌شود؛ جای آن در کد به‌صورت تابع خالی نگه داشته می‌شود |
+| ۱۳. Context Assembly | FastAPI (`app`) | چیدن chunkها بر اساس امتیاز RRF؛ محدودیت توکن |
+| ۱۴. Local LLM Inference | Ollama (`backend`) | فراخوانی API با prompt شامل context |
+| ۱۵. Response Generation | Ollama → FastAPI | متن پاسخ |
+| ۱۶. Source Attribution | FastAPI (`app`) | نگاشت chunkهای استفاده‌شده به `document_id` و `location_meta` |
+| ۱۷. Response Delivery | FastAPI → Streamlit | پاسخ + فهرست منابع |
+| ۱۸. Audit Logging | PostgreSQL (`backend`) | ثبت `query_id`، `chunk_ids`، زمان LLM، توکن‌ها |
 
-**نکتهٔ حیاتی ACL**: مرحلهٔ ۹ **قبل از** Context Assembly و LLM Inference اجرا می‌شود. اگر کوئری ACL با خطا مواجه شود یا timeout رخ دهد، نتیجهٔ آن **رد کامل** است (Fail Closed)، نه نادیده گرفتن. این با الزام Master Prompt مطابقت دارد: «هیچ محتوای غیرمجاز نباید وارد Reranking، Context Assembly یا LLM Context شود.»
+**نکتهٔ حیاتی ACL**: مرحلهٔ ۱۰ **قبل از** Context Assembly و LLM Inference اجرا می‌شود. اگر کوئری ACL با خطا مواجه شود یا timeout رخ دهد، نتیجهٔ آن **رد کامل** است (Fail Closed)، نه نادیده گرفتن. این با الزام Master Prompt مطابقت دارد: «هیچ محتوای غیرمجاز نباید وارد Reranking، Context Assembly یا LLM Context شود.»
 
 **نکتهٔ RRF**: تابع RRF به‌صورت مستقل در `app` پیاده‌سازی می‌شود و به Qdrant یا OpenSearch وابسته نیست. ورودی آن دو لیست رتبه‌بندی‌شده و خروجی یک لیست ادغام‌شده است.
 
@@ -1106,17 +1120,19 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 
 ### ترتیب اجرای امنیتی در Query Flow
 
-ترتیب دقیق مراحل امنیتی در جریان Query (که قبلاً تعریف شد) حیاتی است:
+ترتیب دقیق مراحل امنیتی در جریان Query (که قبلاً در بخش ۱۰ تعریف شده) حیاتی است:
 
-۱. **احراز هویت** (Session validation) → اگر نامعتبر، توقف.
-۲. **استخراج گروه‌های کاربر** از PostgreSQL → اگر خطا، Fail Closed.
-۳. **جستجوی برداری و lexical** (بدون فیلتر ACL در این مرحله، یا با فیلتر ساده در Qdrant).
-۴. **بازبینی اجباری ACL** برای هر chunk از PostgreSQL → حذف chunkهای غیرمجاز.
-۵. **مونتاژ context** فقط از chunkهای تأییدشده.
-۶. **فراخوانی LLM**.
-۷. **ثبت audit log**.
+۱. **احراز هویت** (مرحلهٔ ۱، Session validation) → اگر نامعتبر، توقف.
+۲. **استخراج گروه‌های کاربر** (مرحلهٔ ۳، Authorization Context Resolution) از PostgreSQL → اگر خطا، Fail Closed.
+۳. **جستجوی برداری و lexical** (مراحل ۶ و ۷) (بدون فیلتر ACL در این مرحله، یا با فیلتر ساده در Qdrant).
+۴. **Query-Source Routing** (مرحلهٔ ۸) — تعیین وزن منابع بسته به نوع پرسش.
+۵. **RRF Fusion** (مرحلهٔ ۹) — ادغام نتایج جستجوی برداری و lexical.
+۶. **بازبینی اجباری ACL** (مرحلهٔ ۱۰) برای هر chunk از PostgreSQL → حذف chunkهای غیرمجاز.
+۷. **مونتاژ context** (مرحلهٔ ۱۳) فقط از chunkهای تأییدشده.
+۸. **فراخوانی LLM** (مرحلهٔ ۱۴).
+۹. **ثبت audit log** (مرحلهٔ ۱۸).
 
-مرحلهٔ ۴ نباید به هیچ عنوان حذف یا به بعد از مونتاژ context موکول شود.
+مرحلهٔ ۶ (بازبینی ACL) نباید به هر عنوان حذف یا به بعد از مونتاژ context موکول شود.
 
 ### امنیت محتوای بازیابی‌شده
 
@@ -1285,7 +1301,7 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 |---|---|---|
 | Vector Search | پرسش با کلمهٔ کلیدی مشخص؛ بررسی وجود chunk حاوی آن در نتایج Qdrant | chunk هدف در top-10 باشد |
 | BM25 Search | همان پرسش؛ بررسی نتایج OpenSearch | chunk هدف در top-10 باشد |
-| Hybrid Search | ترکیب دو نتیجه؛ بررسی حضور chunk هدف | chunk هدف در top-5 резулت نهایی RRF |
+| Hybrid Search | ترکیب دو نتیجه؛ بررسی حضور chunk هدف | chunk هدف در top-5 نتیجة نهایی RRF |
 | RRF | تست واحد تابع RRF با دو لیست رتبه‌بندی مصنوعی | خروجی مطابق فرمول `Σ 1/(k+rank)` با `k=60` |
 | Source Attribution | بررسی پاسخ؛ وجود `document_id` و `location_meta` برای هر chunk استفاده‌شده | ≥ ۹۰٪ پاسخ‌های دارای حداقل یک منبع معتبر |
 | بازیابی نسخهٔ صحیح سند | آپلود دو نسخه از یک سند؛ پرسش مرتبط با نسخهٔ دوم | فقط chunkهای نسخهٔ فعال برگردانده شوند |
@@ -1423,7 +1439,7 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 
 ## ۱۸. برآورد منابع سخت‌افزاری (سه سناریو)
 
-این بخش صرفاً **برآورد مهندسی** است و مبنای انتخاب ابزارها نیست. اعداد بر اساس مستندات رسمی ابزارها و منابع عمومی قابل انتقال جمع‌آوری شده‌اند، اما **هیچ سند رسمی واحدی برای ترکیب این پشته وجود ندارد**; بنابراین اعداد باید در Phase 1 با آزمون واقعی روی سخت‌افزار هدف کالیبره شوند.
+این بخش صرفاً **برآورد مهندسی** است و مبنای انتخاب ابزارها نیست. اعداد بر اساس مستندات رسمی ابزارها و منابع عمومی قابل تأیید جمع‌آوری شده‌اند، اما **هیچ سند رسمی واحدی برای ترکیب این پشته وجود ندارد**; بنابراین اعداد باید در Phase 1 با آزمون واقعی روی سخت‌افزار هدف کالیبره شوند.
 
 ### پایه‌های برآورد
 
@@ -1533,7 +1549,7 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 
 ---
 
-### توصیٔ نهایی برای POC
+### توصیه نهایی برای POC
 
 با توجه به اینکه:
 - هدف POC «اثبات امکان‌پذیری و ارزیابی کیفیت» است، نه «عملکرد تولیدی»
@@ -1558,13 +1574,13 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 | ۱ | خلاصهٔ اجرایی | ✅ |
 | ۲ | دامنه و فرضیات POC | ✅ |
 | ۳ | مبنای معماری | ✅ |
-| ۴ | معماری منطقی و لایه‌ها | ✅ |
+| ۴ | معماری منطقی و لایه‌ها | ✅ (افزوده: Reranking ColBERT در L6؛ Chunking هوشمند Excel در L4) |
 | ۵ | ارزیابی ابزارها — دقیقاً سه ابزار برای هر لایه | ✅ (L1–L10) |
-| ۶ | ارزیابی مدل‌ها و پردازش زبان فارسی | ✅ |
-| ۷ | ماتریس انتخاب فناوری | ✅ |
+| ۶ | ارزیابی مدل‌ها و پردازش زبان فارسی | ✅ (افزوده: Yalda-Embedding به‌عنوان آزمون A/B در ۶.۱) |
+| ۷ | ماتریس انتخاب فناوری | ✅ (افزوده: ColBERT Reranking به‌عنوان اختیاری در L6) |
 | ۸ | فهرست نهایی فناوری‌های منتخب | ✅ |
 | ۹ | معماری فیزیکی استقرار | ✅ |
-| ۱۰ | جریان داده End-to-End | ✅ |
+| ۱۰ | جریان داده End-to-End | ✅ (افزوده: Query-Source Routing؛ ثبت `embedding_model_version` در مراحل ۵ و ۱۳) |
 | ۱۱ | استراتژی Offline / Air-Gapped | ✅ |
 | ۱۲ | Security and Access Control | ✅ |
 | ۱۳ | وضعیت تأیید نسخه و License | ✅ |
@@ -1575,3 +1591,19 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 | ۱۸ | برآورد منابع سخت‌افزاری | ✅ |
 
 سند طراحی POC از نظر ساختاری کامل است. تمام انتخاب‌ها در وضعیت **Proposed / Recommended** باقی می‌مانند و پیش از تبدیل شدن به تصمیم معماری مصوب باید بررسی و تأیید شوند.
+
+---
+
+## تغییرات نسخهٔ ۰.۳
+
+با اعمال پیشنهادهای فنی تکمیلی، تغییرات زیر در نسخه ۰.۳ اعمال شده است:
+
+1. افزودن Reranking اختیاری با ColBERT در Layer 6 (زیرسـection جدید در بخش retrieval)
+2. Chunking هوشمند Excel در Layer 4 (قاعده ذخیره‌سازی جدول کوچک/بزرگ با تکرار سرستون)
+3. گزینهٔ Yalda-Embedding به‌عنوان آزمون A/B در بخش ۶.۱ (در کنار e5-large، نه جایگزین قطعی)
+4. Query-Source Routing در جریان Query (مرحله جدید بین BM25 و RRF در Section ۱۰)
+5. ثبت `embedding_model_version` در metadata chunk (بخش ۷، مرحله ۱۳ Ingestion، مرحله ۵ Query)
+6. اصلاح خطاهای نگارشی باقی‌مانده («توصیٔ» → «توصیه»، «резулт» → «نتیجه»، «قابل انتقال» → «قابل تأیید»)
+
+نسخه فایل: ۰.۳  
+تاریخ آخرین به‌روزرسانی: ۱۴۰۵/۰۲/۲۶ (2026-05-26)
