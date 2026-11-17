@@ -373,7 +373,7 @@
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 4**: **python-docx + openpyxl (Option 1)**. ورودی POC صراحتاً به DOCX و XLSX محدود است و هدف «اثبات امکان‌پذیری Document Intelligence» است، نه پردازش چیدمان پیچیده. python-docx و openpyxl منطق استخراج را کاملاً شفاف می‌کنند و هر فیلد Chunk Schema (سطح Heading، محدودهٔ Sheet/Row) قابل کنترل دقیق است. نصب آفلاین فقط دو wheel خالص Python است، بدون ریسک دانلود مدل. Docling به‌عنوان Option 2 حفظ می‌شود؛ اگر در آزمون مشخص شد python-docx برای DOCX هدف کافی نیست، می‌توان در پایان POC پیاده‌سازی داخلی Ingestion را جایگزین کرد بدون تأثیر بر رابط‌های بالادست و پایین‌دست.
+**توصیه Layer 4**: **python-docx + openpyxl (Option 1)**. ورودی POC صراحتاً به DOCX و XLSX محدود است و هدف «اثبات امکان‌پذیری Document Intelligence» است، نه پردازش چیدمان پیچیده. python-docx و openpyxl منطق استخراج را کاملاً شفاف می‌کنند و هر فیلد Chunk Schema (سطح Heading، محدودهٔ Sheet/Row) قابل کنترل دقیق است. نصب آفلاین فقط دو wheel خالص Python است، بدون ریسک دانلود مدل. Docling به‌عنوان Option 2 حفظ می‌شود؛ اگر در آزمون مشخص شد python-docx برای DOCX هدف کافی نیست، می‌توان در پایان POC پیاده‌سازی داخلی Ingestion را جایگزین کرد بدون تأثیر بر رابط‌های بالادست و پایین‌دست.
 
 ---
 
@@ -433,7 +433,7 @@
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 5**: **Ollama (Option 1)** برای LLM و **Sentence Transformers (به‌عنوان کتابخانه در همان فرایند Python)** برای Embedding. Ollama ساده‌ترین مسیر آفلاین برای LLM است؛ Sentence Transformers برای embedding کنترل بیشتری روی مدل چندزبانه می‌دهد و نیازی به سرویس جدا ندارد. vLLM فقط در صورت وجود GPU قوی و نیاز به throughput بالا در آینده بررسی شود.
+**توصیه Layer 5**: **Ollama (Option 1)** برای LLM و **Sentence Transformers (به‌عنوان کتابخانه در همان فرایند Python)** برای Embedding. Ollama ساده‌ترین مسیر آفلاین برای LLM است؛ Sentence Transformers برای embedding کنترل بیشتری روی مدل چندزبانه می‌دهد و نیازی به سرویس جدا ندارد. vLLM فقط در صورت وجود GPU قوی و نیاز به throughput بالا در آینده بررسی شود.
 
 ---
 
@@ -503,7 +503,7 @@ Qdrant از نسخهٔ ۱.۱۰ به بعد قابلیت multivector و پشتی�
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 6**: **Qdrant + OpenSearch + RRF دستی (Option 1)**. Master Prompt صراحتاً Qdrant و OpenSearch را به‌عنوان فناوری‌های پایه تعیین کرده و «هیچ فناوری جایگزینی را بدون مقایسه و توضیح فنی جایگزین فناوری‌های پایه نکنید». گزینه‌های ۲ و ۳ انحراف از baseline هستند و فقط به‌عنوان trade-off ثبت می‌شوند. RRF به‌صورت تابع خالص Python پیاده‌سازی می‌شود تا وابسته به فریم‌ورک نباشد.
+**توصیه Layer 6**: **Qdrant + OpenSearch + RRF دستی (Option 1)**. Master Prompt صراحتاً Qdrant و OpenSearch را به‌عنوان فناوری‌های پایه تعیین کرده و «هیچ فناوری جایگزینی را بدون مقایسه و توضیح فنی جایگزین فناوری‌های پایه نکنید». گزینه‌های ۲ و ۳ انحراف از baseline هستند و فقط به‌عنوان trade-off ثبت می‌شوند. RRF به‌صورت تابع خالص Python پیاده‌سازی می‌شود تا وابسته به فریم‌ورک نباشد.
 
 ---
 
@@ -568,7 +568,7 @@ Qdrant از نسخهٔ ۱.۱۰ به بعد قابلیت multivector و پشتی�
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 7**: **گزینه ۱ (MinIO + PostgreSQL + Qdrant + OpenSearch)**. Master Prompt تفکیک مسئولیت را الزام کرده و indexها باید از Canonical Data بازسازی شوند. گزینه‌های ۲ و ۳ انحراف از baseline هستند و فقط به‌عنوان trade-off ثبت می‌شوند. **هشدار License MinIO (AGPL-3.0)** باید در مرحلهٔ بررسی حقوقی جداگانه تأیید شود؛ در POC داخلی معمولاً مشکلی ایجاد نمی‌کند اما برای آیندهٔ سازمانی حتماً باید بررسی شود.
+**توصیه Layer 7**: **گزینه ۱ (MinIO + PostgreSQL + Qdrant + OpenSearch)**. Master Prompt تفکیک مسئولیت را الزام کرده و indexها باید از Canonical Data بازسازی شوند. گزینه‌های ۲ و ۳ انحراف از baseline هستند و فقط به‌عنوان trade-off ثبت می‌شوند. **هشدار License MinIO (AGPL-3.0)** باید در مرحلهٔ بررسی حقوقی جداگانه تأیید شود؛ در POC داخلی معمولاً مشکلی ایجاد نمی‌کند اما برای آیندهٔ سازمانی حتماً باید بررسی شود.
 
 ---
 
@@ -630,7 +630,7 @@ Qdrant از نسخهٔ ۱.۱۰ به بعد قابلیت multivector و پشتی�
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 8**: **احراز هویت خودساخته + PostgreSQL ACL (Option 1)**. Master Prompt یک مدل ساده اما واقعی خواسته، نه IAM سازمانی. مرجع Document-Level ACL همان PostgreSQL است؛ افزودن IdP مستقل فقط کانتینر و پیکربندی اضافه می‌کند و کمکی به ACL نمی‌کند. Casdoor به‌عنوان Option 2 حفظ می‌شود؛ اگر POC در آینده به OIDC/SSO نیاز پیدا کرد، می‌توان ارائه‌دهندهٔ Auth را بدون تأثیر بر منطق ACL جایگزین کرد.
+**توصیه Layer 8**: **احراز هویت خودساخته + PostgreSQL ACL (Option 1)**. Master Prompt یک مدل ساده اما واقعی خواسته، نه IAM سازمانی. مرجع Document-Level ACL همان PostgreSQL است؛ افزودن IdP مستقل فقط کانتینر و پیکربندی اضافه می‌کند و کمکی به ACL نمی‌کند. Casdoor به‌عنوان Option 2 حفظ می‌شود؛ اگر POC در آینده به OIDC/SSO نیاز پیدا کرد، می‌توان ارائه‌دهندهٔ Auth را بدون تأثیر بر منطق ACL جایگزین کرد.
 
 ---
 
@@ -688,7 +688,7 @@ Qdrant از نسخهٔ ۱.۱۰ به بعد قابلیت multivector و پشتی�
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 9**: **Python logging + PostgreSQL audit_log + Ragas (Option 1)**. Master Prompt صراحتاً «سبک و کم‌هزینه» را در اولویت قرار داده. هدف ارزیابی POC ایجاد خط پایه است، نه داشبورد پایش زمان‌واقعی. شاخص‌های تخصصی RAG در Ragas (faithfulness، context recall و غیره) مستقیماً با نیازهای کمی Acceptance Criteria مطابقت دارند. Langfuse و Phoenix به‌عنوان گزینه‌های آینده حفظ می‌شوند.
+**توصیه Layer 9**: **Python logging + PostgreSQL audit_log + Ragas (Option 1)**. Master Prompt صراحتاً «سبک و کم‌هزینه» را در اولویت قرار داده. هدف ارزیابی POC ایجاد خط پایه است، نه داشبورد پایش زمان‌واقعی. شاخص‌های تخصصی RAG در Ragas (faithfulness، context recall و غیره) مستقیماً با نیازهای کمی Acceptance Criteria مطابقت دارند. Langfuse و Phoenix به‌عنوان گزینه‌های آینده حفظ می‌شوند.
 
 ---
 
@@ -748,7 +748,7 @@ Qdrant از نسخهٔ ۱.۱۰ به بعد قابلیت multivector و پشتی�
 
 **رتبه‌بندی**: Option 1: Best Fit — Option 2: Strong Alternative — Option 3: Alternative with Specific Trade-offs
 
-**توصیٔ Layer 10**: **Docker Compose + docker save/load + pip download (Option 1)**. Master Prompt صراحتاً Docker Compose را به‌عنوان گزینهٔ اول تعیین کرده. عملیات آفلاین POC باید قابل تکرار و مستندپذیر باشد؛ `docker save/load` + `pip download` مستقیم‌ترین و کم‌خطاترین روش است.
+**توصیه Layer 10**: **Docker Compose + docker save/load + pip download (Option 1)**. Master Prompt صراحتاً Docker Compose را به‌عنوان گزینهٔ اول تعیین کرده. عملیات آفلاین POC باید قابل تکرار و مستندپذیر باشد؛ `docker save/load` + `pip download` مستقیم‌ترین و کم‌خطاترین روش است.
 
 ---
 
@@ -1603,7 +1603,7 @@ POC با ۲–۳ کاربر آزمایشی و در محیط ایزوله اجر�
 3. گزینهٔ Yalda-Embedding به‌عنوان آزمون A/B در بخش ۶.۱ (در کنار e5-large، نه جایگزین قطعی)
 4. Query-Source Routing در جریان Query (مرحله جدید بین BM25 و RRF در Section ۱۰)
 5. ثبت `embedding_model_version` در metadata chunk (بخش ۷، مرحله ۱۳ Ingestion، مرحله ۵ Query)
-6. اصلاح خطاهای نگارشی باقی‌مانده («توصیٔ» → «توصیه»، «резулт» → «نتیجه»، «قابل انتقال» → «قابل تأیید»)
+6. اصلاح خطاهای نگارشی باقی‌مانده («توصیه» → «توصیه»، «резулт» → «نتیجه»، «قابل انتقال» → «قابل تأیید»)
 
 نسخه فایل: ۰.۳  
 تاریخ آخرین به‌روزرسانی: ۱۴۰۵/۰۲/۲۶ (2026-05-26)
